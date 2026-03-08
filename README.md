@@ -2,6 +2,9 @@
 
 **[English](#english)** · **[中文](#中文)**
 
+[![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc/4.0/)
+[![Copyright](https://img.shields.io/badge/Copyright-2026%20yigediao-blue.svg)]()
+
 </div>
 
 ---
@@ -148,7 +151,9 @@ All data is stored in `data/dictation_data.json`:
 
 ## License
 
-MIT
+Copyright © 2026 yigediao. Licensed under [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) —
+free to use and share for non-commercial purposes with attribution.
+Third-party libraries (Flask, pinyin-pro, HanziWriter) retain their own licenses.
 
 ---
 
@@ -294,4 +299,6 @@ python server.py
 
 ## License
 
-MIT
+Copyright © 2026 yigediao. Licensed under [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) —
+free to use and share for non-commercial purposes with attribution.
+Third-party libraries (Flask, pinyin-pro, HanziWriter) retain their own licenses.
