@@ -1,0 +1,2613 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>听写小助手</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@300;400;600;700&display=swap');
+
+  :root {
+    --ink: #1a1008;
+    --paper: #f5f0e8;
+    --paper-dark: #ede5d0;
+    --red: #c0392b;
+    --red-light: #fce8e6;
+    --gold: #b8860b;
+    --gold-light: #f0d080;
+    --green: #2d6a4f;
+    --green-light: #d4f0e4;
+    --gray: #8a7a6a;
+    --gray-light: #c8bfb0;
+    --shadow: rgba(26,16,8,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Noto Serif SC', serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(180,160,120,0.12) 31px, rgba(180,160,120,0.12) 32px);
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--ink);
+    color: var(--gold-light);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 3px 10px var(--shadow);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-family: 'Ma Shan Zheng', cursive; font-size: 26px; letter-spacing: 4px; }
+  .logo span { color: var(--red); }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    background: var(--paper-dark);
+    border-bottom: 2px solid var(--ink);
+    overflow-x: auto;
+  }
+  .tab {
+    padding: 11px 20px;
+    cursor: pointer; font-size: 13px; font-weight: 700;
+    letter-spacing: 1px; color: var(--gray);
+    border-right: 1px solid rgba(26,16,8,0.1);
+    white-space: nowrap; transition: all 0.2s; user-select: none;
+  }
+  .tab:hover { background: rgba(26,16,8,0.05); color: var(--ink); }
+  .tab.active { background: var(--ink); color: var(--gold-light); }
+
+  /* ── LAYOUT ── */
+  .main { padding: 20px; max-width: 680px; margin: 0 auto; }
+  .page { display: none; }
+  .page.active { display: block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+  /* ── CARDS ── */
+  .card {
+    background: white;
+    border: 1.5px solid rgba(26,16,8,0.1);
+    border-radius: 4px;
+    padding: 18px;
+    margin-bottom: 14px;
+    box-shadow: 3px 3px 0 rgba(26,16,8,0.05);
+  }
+  .card-title {
+    font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    color: var(--gray); text-transform: uppercase;
+    margin-bottom: 14px; padding-bottom: 10px;
+    border-bottom: 1px solid var(--paper-dark);
+  }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 18px;
+    border: 1.5px solid var(--ink); background: var(--ink);
+    color: var(--gold-light);
+    font-family: 'Noto Serif SC', serif; font-size: 13px;
+    font-weight: 700; letter-spacing: 1px;
+    border-radius: 2px; cursor: pointer; transition: all 0.15s; user-select: none;
+  }
+  .btn:hover { background: #2d2010; }
+  .btn:active { transform: scale(0.96); }
+  .btn-outline { background: transparent; color: var(--ink); }
+  .btn-outline:hover { background: var(--paper-dark); }
+  .btn-red { background: var(--red); border-color: var(--red); color: white; }
+  .btn-red:hover { background: #a93226; }
+  .btn-green { background: var(--green); border-color: var(--green); color: white; }
+  .btn-green:hover { background: #1e5038; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-xl {
+    padding: 18px 24px; font-size: 18px; letter-spacing: 2px;
+    border-radius: 4px; width: 100%; justify-content: center;
+    box-shadow: 4px 4px 0 rgba(26,16,8,0.15);
+  }
+
+  /* ── FORMS ── */
+  input[type=text], textarea, select {
+    font-family: 'Noto Serif SC', serif; font-size: 14px;
+    border: 1.5px solid rgba(26,16,8,0.2); border-radius: 2px;
+    padding: 8px 12px; background: var(--paper); color: var(--ink);
+    outline: none; width: 100%; transition: border-color 0.2s;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--ink); background: white; }
+  textarea { resize: vertical; min-height: 100px; line-height: 1.8; }
+  label { font-size: 12px; font-weight: 700; letter-spacing: 1px; color: var(--gray); display: block; margin-bottom: 6px; }
+  .form-group { margin-bottom: 14px; }
+  select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M0 0l6 8 6-8z' fill='%238a7a6a'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
+  }
+
+  /* ── HOME STATS ── */
+  .stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+  .stat-box { background: var(--paper-dark); border: 1.5px solid rgba(26,16,8,0.08); border-radius: 4px; padding: 14px 10px; text-align: center; }
+  .stat-number { font-family: 'Ma Shan Zheng', cursive; font-size: 34px; color: var(--ink); line-height: 1; margin-bottom: 4px; }
+  .stat-label { font-size: 11px; letter-spacing: 1px; color: var(--gray); font-weight: 700; }
+
+  /* ══════════════════════════════════
+     DICTATION SCREEN
+  ══════════════════════════════════ */
+  #dictation-screen, #summary-screen, #quick-add-screen { display: none; }
+  #dictation-screen.active, #summary-screen.active { display: block; }
+  #quick-add-screen.active { display: flex; flex-direction: column; }
+
+  /* ── HIGH FREQ ── */
+  .hf-list { display: flex; flex-direction: column; gap: 7px; }
+  .hf-item { display: flex; align-items: center; gap: 10px; }
+  .hf-rank { font-size: 11px; font-weight: 700; color: var(--gray); width: 18px; text-align: right; flex-shrink: 0; }
+  .hf-rank.top3 { color: var(--red); font-size: 14px; }
+  .hf-word { display: flex; flex-direction: column; width: 52px; flex-shrink: 0; }
+  .hf-char { font-size: 20px; line-height: 1.2; }
+  .hf-pinyin { font-size: 10px; color: var(--gray); line-height: 1.3; }
+  .hf-bar-wrap { flex: 1; height: 8px; background: var(--paper-dark); border-radius: 4px; overflow: hidden; }
+  .hf-bar { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+  .hf-bar.lvl1 { background: var(--gold); }
+  .hf-bar.lvl2 { background: #e8892a; }
+  .hf-bar.lvl3 { background: var(--red); }
+  .hf-count { font-size: 12px; font-weight: 700; color: var(--gray); width: 32px; text-align: right; flex-shrink: 0; }
+
+  /* ── QUICK ADD ── */
+  .qa-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 0 10px; border-bottom: 1.5px solid rgba(26,16,8,0.1); margin-bottom: 14px; }
+  .qa-header-title { font-size: 17px; font-weight: bold; }
+  .qa-header-count { font-size: 13px; color: var(--gray); }
+  .qa-group { margin-bottom: 18px; }
+  .qa-group-name { font-size: 11px; font-weight: 700; color: var(--gray); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+  .qa-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .qa-chip { display: flex; flex-direction: column; align-items: center; border: 1.5px solid rgba(26,16,8,0.2); border-radius: 6px; padding: 5px 10px 6px; cursor: pointer; background: white; transition: background 0.12s, border-color 0.12s; user-select: none; min-width: 46px; text-align: center; }
+  .qa-chip:active { transform: scale(0.93); }
+  .qa-chip.selected { background: var(--red); border-color: var(--red); color: white; }
+  .qa-py { font-size: 10px; color: var(--gray); line-height: 1.4; }
+  .qa-chip.selected .qa-py { color: rgba(255,255,255,0.75); }
+  .qa-char { font-size: 22px; line-height: 1.25; }
+  .qa-footer { position: sticky; bottom: 0; background: var(--paper); border-top: 1px solid rgba(26,16,8,0.1); padding: 12px 0 14px; display: flex; gap: 10px; margin-top: 4px; }
+
+  /* ── SELECTED LIST CHIPS ── */
+  .sel-chips-area { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; min-height:28px; align-items:center; }
+  .sel-chip { display:inline-flex; align-items:center; gap:4px; background:var(--ink); color:var(--paper); border-radius:12px; padding:4px 8px 4px 11px; font-size:12px; cursor:pointer; user-select:none; line-height:1.5; }
+  .sel-chip:active { opacity:0.7; }
+  .sel-chip-x { font-size:14px; line-height:1; opacity:0.7; }
+  .sel-chips-empty { font-size:12px; color:var(--gray); }
+
+  /* ── CHAR SELECT OVERLAY ── */
+  #char-select-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 2000; align-items: center; justify-content: center; padding: 20px; }
+  #char-select-overlay.active { display: flex; }
+  .cs-box { background: var(--paper); border-radius: 12px; padding: 24px 20px 20px; width: 100%; max-width: 360px; box-shadow: 0 8px 32px rgba(0,0,0,0.25); }
+  .cs-title { font-size: 15px; font-weight: bold; text-align: center; margin-bottom: 6px; }
+  .cs-subtitle { font-size: 12px; color: var(--gray); text-align: center; margin-bottom: 18px; }
+  .cs-chips { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-bottom: 20px; }
+  .cs-chip { display: flex; flex-direction: column; align-items: center; border: 2px solid rgba(26,16,8,0.15); border-radius: 8px; padding: 8px 18px; cursor: pointer; background: white; transition: all 0.15s; user-select: none; min-width: 64px; }
+  .cs-chip:active { transform: scale(0.93); }
+  .cs-chip.selected { background: var(--red); border-color: var(--red); color: white; }
+  .cs-py { font-size: 11px; color: var(--gray); margin-bottom: 2px; }
+  .cs-chip.selected .cs-py { color: rgba(255,255,255,0.8); }
+  .cs-char { font-size: 36px; line-height: 1.2; }
+  .cs-actions { display: flex; gap: 10px; }
+  .cs-hint { font-size: 11px; color: var(--gray); text-align: center; margin-top: 10px; }
+
+  .progress-bar-wrap { height: 5px; background: var(--paper-dark); border-radius: 3px; overflow: hidden; margin-bottom: 20px; }
+  .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--gold), var(--red)); transition: width 0.4s ease; border-radius: 3px; }
+
+  /* Big word display */
+  .word-stage {
+    background: white;
+    border: 2px solid var(--ink);
+    border-radius: 6px;
+    padding: 28px 20px 24px;
+    text-align: center;
+    box-shadow: 6px 6px 0 rgba(26,16,8,0.08);
+    margin-bottom: 16px;
+    position: relative;
+    min-height: 240px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 14px;
+  }
+
+  .word-counter {
+    position: absolute; top: 12px; left: 16px;
+    font-size: 11px; color: var(--gray); letter-spacing: 2px; font-weight: 700;
+  }
+  .word-list-badge {
+    position: absolute; top: 12px; right: 16px;
+    font-size: 10px; background: var(--paper-dark); color: var(--gray);
+    padding: 3px 8px; border-radius: 2px; font-weight: 700; letter-spacing: 1px;
+    max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  /* The word shown to parent */
+  .big-word {
+    font-family: 'Ma Shan Zheng', cursive;
+    font-size: 72px;
+    color: var(--ink);
+    line-height: 1.1;
+    letter-spacing: 8px;
+    user-select: none;
+  }
+  .big-word .highlight-char { color: var(--red); }
+
+  .word-pinyin {
+    font-size: 20px; color: var(--red); letter-spacing: 6px;
+    font-family: sans-serif; min-height: 28px;
+  }
+
+  /* Audio button */
+  .speak-btn {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--ink); border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; color: var(--gold-light);
+    box-shadow: 3px 3px 0 rgba(26,16,8,0.15);
+    transition: all 0.2s; flex-shrink: 0;
+  }
+  .speak-btn:hover { background: #2d2010; transform: scale(1.05); }
+  .speak-btn.speaking { background: var(--red); animation: pulse 0.7s ease infinite alternate; }
+  @keyframes pulse {
+    from { box-shadow: 3px 3px 0 rgba(192,57,43,0.2); }
+    to   { box-shadow: 3px 3px 0 rgba(192,57,43,0.4), 0 0 16px rgba(192,57,43,0.25); }
+  }
+
+  /* Judge buttons — BIG, touch-friendly */
+  .judge-row {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px; margin-bottom: 12px;
+  }
+  .judge-btn {
+    padding: 22px 12px;
+    border-radius: 4px; border: none; cursor: pointer;
+    font-family: 'Noto Serif SC', serif;
+    font-size: 20px; font-weight: 700; letter-spacing: 2px;
+    transition: all 0.15s; user-select: none;
+    box-shadow: 4px 4px 0 rgba(26,16,8,0.12);
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .judge-btn:active { transform: scale(0.96) translateY(2px); box-shadow: 2px 2px 0 rgba(26,16,8,0.1); }
+  .judge-btn-wrong {
+    background: var(--red-light); color: var(--red);
+    border: 2px solid var(--red);
+  }
+  .judge-btn-wrong:hover { background: #f5d0cc; }
+  .judge-btn-right {
+    background: var(--green-light); color: var(--green);
+    border: 2px solid var(--green);
+  }
+  .judge-btn-right:hover { background: #c0e8d4; }
+  .judge-btn .judge-icon { font-size: 32px; line-height: 1; }
+  .judge-btn .judge-text { font-size: 15px; letter-spacing: 1px; }
+
+  .dict-actions { display: flex; gap: 10px; }
+  .dict-actions .btn { flex: 1; justify-content: center; }
+
+  /* ══════════════════════════════════
+     SUMMARY
+  ══════════════════════════════════ */
+  .summary-score {
+    text-align: center; padding: 20px 0 10px;
+  }
+  .summary-pct {
+    font-family: 'Ma Shan Zheng', cursive;
+    font-size: 80px; line-height: 1;
+  }
+  .summary-detail { font-size: 13px; color: var(--gray); letter-spacing: 1px; margin-top: 6px; }
+  .summary-praise { font-family: 'Ma Shan Zheng', cursive; font-size: 22px; letter-spacing: 4px; margin-top: 8px; }
+
+  .wrong-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .wrong-chip {
+    font-family: 'Ma Shan Zheng', cursive; font-size: 22px;
+    padding: 8px 16px;
+    background: var(--red-light); border: 1.5px solid var(--red);
+    border-radius: 3px; cursor: pointer; transition: all 0.15s;
+  }
+  .wrong-chip:hover { background: #f5d0cc; }
+
+  /* ══════════════════════════════════
+     MISTAKES PAGE — by date
+  ══════════════════════════════════ */
+  .date-group { margin-bottom: 20px; }
+  .date-group-header {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 10px; padding-bottom: 8px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .date-label {
+    font-size: 13px; font-weight: 700; letter-spacing: 2px; color: var(--ink);
+  }
+  .date-count {
+    font-size: 11px; background: var(--red); color: white;
+    padding: 2px 8px; border-radius: 10px; font-weight: 700;
+  }
+  .date-words { display: flex; flex-wrap: wrap; gap: 8px; }
+  .mistake-word-card {
+    background: white; border: 1.5px solid rgba(26,16,8,0.1);
+    border-radius: 4px; padding: 10px 14px; text-align: center;
+    cursor: pointer; transition: all 0.15s;
+    min-width: 70px;
+  }
+  .mistake-word-card:hover { border-color: var(--red); box-shadow: 2px 2px 0 rgba(192,57,43,0.1); }
+  .mistake-char { font-family: 'Ma Shan Zheng', cursive; font-size: 28px; display: block; }
+  .mistake-pinyin { font-size: 11px; color: var(--gray); margin-top: 2px; }
+  .mistake-freq {
+    font-size: 10px; color: var(--red); font-weight: 700;
+    margin-top: 3px; letter-spacing: 1px;
+  }
+
+  /* ══════════════════════════════════
+     HISTORY
+  ══════════════════════════════════ */
+  .history-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 0; border-bottom: 1px solid var(--paper-dark);
+    font-size: 13px;
+  }
+  .history-date { font-size: 12px; color: var(--gray); min-width: 90px; }
+  .history-score { font-family: 'Ma Shan Zheng', cursive; font-size: 20px; min-width: 48px; }
+  .score-hi { color: var(--green); }
+  .score-mid { color: var(--gold); }
+  .score-lo { color: var(--red); }
+  .history-detail { font-size: 12px; color: var(--gray); flex: 1; line-height: 1.5; }
+  .history-wrong-chars { font-family: 'Ma Shan Zheng', cursive; font-size: 14px; color: var(--red); }
+
+  /* ══════════════════════════════════
+     ANALYTICS
+  ══════════════════════════════════ */
+  .an-section { margin-bottom: 18px; }
+  .an-section-title {
+    font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    color: var(--gray); text-transform: uppercase; margin-bottom: 10px;
+    border-left: 3px solid var(--gold); padding-left: 8px;
+  }
+  /* Trend chart */
+  .trend-bars { display: flex; align-items: flex-end; gap: 4px; height: 56px; margin-top: 4px; }
+  .trend-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .trend-bar {
+    width: 100%; border-radius: 2px 2px 0 0;
+    background: var(--ink); min-height: 3px;
+    transition: height 0.3s ease;
+  }
+  .trend-bar.hi { background: var(--green); }
+  .trend-bar.mid { background: var(--gold); }
+  .trend-bar.lo { background: var(--red); }
+  .trend-label { font-size: 9px; color: var(--gray); white-space: nowrap; }
+  /* Mastery bar */
+  .mastery-bar-wrap { background: var(--paper-dark); border-radius: 2px; height: 14px; overflow: hidden; margin: 6px 0 4px; }
+  .mastery-bar-fill { height: 100%; display: flex; }
+  .mastery-seg-master { background: var(--green); }
+  .mastery-seg-active { background: var(--gold); }
+  .mastery-seg-hard   { background: var(--red); }
+  .mastery-legend { display: flex; gap: 12px; font-size: 11px; color: var(--gray); flex-wrap: wrap; }
+  .mastery-legend span::before { content: '■ '; }
+  .mastery-legend .l-master::before { color: var(--green); }
+  .mastery-legend .l-active::before { color: var(--gold); }
+  .mastery-legend .l-hard::before   { color: var(--red); }
+  /* Word pills in analytics */
+  .an-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .an-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    border-radius: 2px; padding: 3px 9px; font-size: 13px;
+    font-family: 'Ma Shan Zheng', cursive;
+    background: var(--paper-dark); border: 1px solid rgba(26,16,8,0.1);
+  }
+  .an-pill .an-cnt {
+    font-size: 10px; font-family: 'Noto Serif SC', serif;
+    color: var(--gray); background: rgba(0,0,0,0.06);
+    border-radius: 10px; padding: 0 5px;
+  }
+  .an-pill.danger { border-color: var(--red); color: var(--red); }
+  .an-pill.warn   { border-color: var(--gold); }
+  .an-pill.ok     { border-color: var(--green); color: var(--green); }
+  /* Streak badge */
+  .streak-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--paper-dark); border: 1.5px solid var(--gold);
+    border-radius: 2px; padding: 6px 14px; font-size: 13px;
+    font-family: 'Ma Shan Zheng', cursive; color: var(--gold);
+    margin-top: 4px;
+  }
+  .streak-badge b { font-size: 22px; }
+
+  /* ══════════════════════════════════
+     WORD LIST PAGE
+  ══════════════════════════════════ */
+  .word-chip {
+    background: var(--paper-dark); border: 1px solid rgba(26,16,8,0.12);
+    border-radius: 2px; padding: 3px 10px; font-size: 15px;
+    font-family: 'Ma Shan Zheng', cursive;
+  }
+  .word-list-preview { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+
+  /* ── MISC ── */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--ink); color: var(--gold-light);
+    padding: 10px 20px; border-radius: 2px;
+    font-size: 13px; letter-spacing: 1px;
+    z-index: 999; transition: transform 0.3s ease; pointer-events: none;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  .empty-state { text-align: center; padding: 36px 20px; color: var(--gray); font-size: 14px; letter-spacing: 1px; }
+  .empty-state .emoji { font-size: 36px; display: block; margin-bottom: 10px; }
+
+  .flex-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .flex-1 { flex: 1; }
+  hr { border: none; border-top: 1px solid var(--paper-dark); margin: 14px 0; }
+
+  .mode-toggle { display: flex; border: 1.5px solid var(--ink); border-radius: 2px; overflow: hidden; margin-bottom: 14px; }
+  .mode-toggle-btn {
+    flex: 1; padding: 8px 4px; font-size: 12px; font-weight: 700; letter-spacing: 1px;
+    cursor: pointer; text-align: center; background: transparent; border: none;
+    color: var(--gray); font-family: 'Noto Serif SC', serif; transition: all 0.2s;
+  }
+  .mode-toggle-btn.active { background: var(--ink); color: var(--gold-light); }
+
+  @media (max-width: 480px) {
+    .main { padding: 14px; }
+    .big-word { font-size: 64px; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .judge-btn { padding: 18px 10px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">听写<span>小助手</span></div>
+  <div>
+    <button class="btn btn-sm" onclick="showTab('settings')" style="background:transparent;border-color:rgba(255,255,255,0.25);color:var(--gold-light);">⚙ 设置</button>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('home')" data-tab="home">🏠 首页</div>
+  <div class="tab" onclick="showTab('wordlists')" data-tab="wordlists">📚 词表</div>
+  <div class="tab" onclick="showTab('mistakes')" data-tab="mistakes">❌ 错题本</div>
+  <div class="tab" onclick="showTab('history')" data-tab="history">📊 历史</div>
+</div>
+
+<div class="main">
+
+<!-- ══════ HOME ══════ -->
+<div id="page-home" class="page active">
+  <div class="card">
+    <div class="card-title">开始听写</div>
+    <div class="form-group">
+      <label>选择词表（可多选）</label>
+      <select id="select-wordlist" onchange="addListToSelection()">
+        <option value="">-- 点击添加词表 --</option>
+      </select>
+      <div class="sel-chips-area" id="sel-chips">
+        <span class="sel-chips-empty">从上方下拉选择，可多选</span>
+      </div>
+    </div>
+    <div class="form-group" id="mistakes-date-group" style="display:none;">
+      <label>错题日期</label>
+      <select id="select-mistakes-date">
+        <option value="">最新（全部）</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>听写模式</label>
+      <div class="mode-toggle">
+        <button class="mode-toggle-btn active" data-mode="word" onclick="selectMode(this)">🃏 只显示词</button>
+        <button class="mode-toggle-btn" data-mode="audio" onclick="selectMode(this)">🔊 语音+词</button>
+        <button class="mode-toggle-btn" data-mode="pinyin" onclick="selectMode(this)">📖 拼音提示</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>题目数量</label>
+      <select id="select-count">
+        <option value="5">5 题</option>
+        <option value="10" selected>10 题</option>
+        <option value="15">15 题</option>
+        <option value="20">20 题</option>
+        <option value="all">全部</option>
+      </select>
+    </div>
+    <div class="form-group" style="display:flex;align-items:center;gap:8px;">
+      <input type="checkbox" id="include-mistakes" style="width:auto;">
+      <label style="margin:0;font-size:13px;letter-spacing:0;">优先练习错题本里的字</label>
+    </div>
+    <button class="btn btn-xl" onclick="startDictation()">开始听写 →</button>
+    <button class="btn btn-outline" onclick="openQuickAdd()" style="margin-top:10px;width:100%;font-size:14px;">⚡ 中途加入 — 快速标记不会写的词</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">今日概况</div>
+    <div class="stats-grid">
+      <div class="stat-box"><div class="stat-number" id="stat-today">0</div><div class="stat-label">今日听写</div></div>
+      <div class="stat-box"><div class="stat-number" id="stat-correct">0</div><div class="stat-label">答对</div></div>
+      <div class="stat-box"><div class="stat-number" id="stat-mistakes">0</div><div class="stat-label">错题本</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ DICTATION ══════ -->
+<div id="dictation-screen">
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progress-bar" style="width:0%"></div>
+  </div>
+
+  <div class="word-stage">
+    <div class="word-counter" id="dict-counter">1 / 10</div>
+    <div class="word-list-badge" id="dict-list-badge"></div>
+
+    <!-- The word shown to parent to read aloud -->
+    <div class="big-word" id="big-word">好</div>
+    <div class="word-pinyin" id="word-pinyin"></div>
+
+    <div style="display:flex;align-items:center;gap:14px;">
+      <button class="speak-btn" id="speak-btn" onclick="speakCurrent()" title="朗读">🔊</button>
+      <div style="font-size:12px;color:var(--gray);line-height:1.6;">
+        家长念出这个字<br>孩子在纸上写
+      </div>
+    </div>
+  </div>
+
+  <!-- Judge buttons -->
+  <div class="judge-row">
+    <button class="judge-btn judge-btn-wrong" onclick="judgeAnswer(false)">
+      <span class="judge-icon">✗</span>
+      <span class="judge-text">写错了</span>
+    </button>
+    <button class="judge-btn judge-btn-right" onclick="judgeAnswer(true)">
+      <span class="judge-icon">✓</span>
+      <span class="judge-text">写对了</span>
+    </button>
+  </div>
+
+  <div class="dict-actions">
+    <button class="btn btn-outline" onclick="speakCurrent()">🔊 重读</button>
+    <button class="btn btn-outline" onclick="skipWord()">跳过</button>
+    <button class="btn btn-outline" style="color:var(--red);border-color:var(--red);" onclick="endDictation()">结束</button>
+  </div>
+</div>
+
+<!-- ══════ SUMMARY ══════ -->
+<div id="summary-screen">
+  <div class="card">
+    <div class="summary-score">
+      <div class="summary-pct" id="sum-pct">--</div>
+      <div class="summary-detail" id="sum-detail"></div>
+      <div class="summary-praise" id="sum-praise"></div>
+    </div>
+  </div>
+
+  <div class="card" id="sum-wrong-card" style="display:none;">
+    <div class="card-title">本次写错的字 <span style="color:var(--red);font-size:12px;">（点击可朗读）</span></div>
+    <div class="wrong-chips" id="sum-wrong-chips"></div>
+  </div>
+
+  <div class="flex-row" style="margin-top:4px;">
+    <button class="btn flex-1" onclick="restartSummary()">再来一次</button>
+    <button class="btn btn-outline flex-1" onclick="practiceWrong()">练习错题</button>
+    <button class="btn btn-outline" onclick="backHome()">返回</button>
+  </div>
+</div>
+
+<!-- ══════ WORD LISTS ══════ -->
+<div id="page-wordlists" class="page">
+  <div class="card">
+    <div class="card-title">新建词表</div>
+    <div class="form-group">
+      <label>词表名称（留空则自动编号 #1、#2…）</label>
+      <input type="text" id="new-list-name" placeholder="留空自动编号，或手动输入名称">
+    </div>
+    <div class="form-group">
+      <label>词语（每行一个，格式：汉字 或 汉字/拼音）</label>
+      <textarea id="new-list-words" placeholder="苹果&#10;香蕉/xiāng jiāo&#10;学习/xué xí" oninput="updateWordPreview()"></textarea>
+    </div>
+    <div class="flex-row" style="flex-wrap:wrap;gap:8px;">
+      <button class="btn" onclick="saveWordList()">保存词表</button>
+      <button class="btn btn-outline" onclick="autoFillPinyin()" title="自动为没有拼音的词生成拼音">🔤 自动拼音</button>
+      <button class="btn btn-outline" onclick="importTxtFile()" title="从文本文件导入词语">📄 导入文本</button>
+      <button class="btn btn-outline" onclick="importPreset()">📸 预设词表</button>
+    </div>
+    <input type="file" id="import-txt-file" style="display:none" accept=".txt,.csv,.text" onchange="handleTxtImport(event)">
+    <div id="word-preview" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--paper-dark);">
+      <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:var(--gray);margin-bottom:8px;">预览 · <span id="preview-count">0</span> 个词</div>
+      <div class="word-list-preview" id="preview-chips"></div>
+    </div>
+  </div>
+  <div id="wordlist-container"></div>
+</div>
+
+<!-- ══════ MISTAKES ══════ -->
+<div id="page-mistakes" class="page">
+  <div class="card">
+    <div class="card-title">🔥 高频错词</div>
+    <div id="hf-container"><div class="empty-state"><span class="emoji">📊</span>完成几次听写后这里会显示高频错词</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">错题本 — 按日期</div>
+    <div class="flex-row" style="margin-bottom:12px;">
+      <button class="btn btn-sm flex-1" onclick="practiceWrongAll()">练习全部错题</button>
+      <button class="btn btn-sm btn-outline" onclick="generateZitie()">📝 生成字帖</button>
+      <button class="btn btn-sm btn-outline" style="color:var(--red);border-color:var(--red);" onclick="clearMistakes()">清空</button>
+    </div>
+    <div id="mistakes-container">
+      <div class="empty-state"><span class="emoji">🎉</span>暂无错题，加油！</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ HISTORY ══════ -->
+<div id="page-history" class="page">
+  <!-- Analytics card -->
+  <div class="card" id="analysis-container" style="display:none;">
+    <div class="card-title">📈 学习分析</div>
+    <div id="analysis-content"></div>
+  </div>
+  <!-- History records -->
+  <div class="card">
+    <div class="card-title">听写记录</div>
+    <div class="stats-grid" id="history-total-stats" style="margin-bottom:14px;"></div>
+    <div id="history-container">
+      <div class="empty-state"><span class="emoji">📝</span>还没有听写记录</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ SETTINGS ══════ -->
+<div id="page-settings" class="page">
+  <div class="card">
+    <div class="card-title">语音设置</div>
+    <div class="form-group">
+      <label>朗读语速</label>
+      <input type="range" id="speech-rate" min="0.5" max="1.5" step="0.1" value="0.8" style="width:100%;">
+      <div style="font-size:12px;color:var(--gray);margin-top:4px;">当前：<span id="rate-display">0.8</span>x</div>
+    </div>
+    <div class="form-group">
+      <label>重复次数</label>
+      <select id="speech-repeat">
+        <option value="1">朗读 1 次</option>
+        <option value="2" selected>朗读 2 次</option>
+        <option value="3">朗读 3 次</option>
+      </select>
+    </div>
+    <button class="btn btn-outline" onclick="speakWord('测试语音')">测试语音</button>
+  </div>
+  <div class="card">
+    <div class="card-title">数据管理</div>
+    <div class="flex-row">
+      <button class="btn btn-outline flex-1" onclick="exportData()">📤 导出</button>
+      <button class="btn btn-outline flex-1" onclick="document.getElementById('import-file').click()">📥 导入</button>
+      <input type="file" id="import-file" style="display:none" accept=".json" onchange="importData(event)">
+    </div>
+    <hr>
+    <button class="btn btn-red" style="width:100%;justify-content:center;" onclick="resetAll()">⚠ 清空所有数据</button>
+  </div>
+</div>
+
+<!-- ══════ CHAR SELECT OVERLAY ══════ -->
+<div id="char-select-overlay">
+  <div class="cs-box">
+    <div class="cs-title">哪个字写错了？</div>
+    <div class="cs-subtitle">点选写错的字（红色），再点「确认」</div>
+    <div class="cs-chips" id="cs-chips"></div>
+    <div class="cs-actions">
+      <button class="btn btn-outline flex-1" onclick="csSelectAll()">全部选中</button>
+      <button class="btn flex-1" onclick="confirmCharSelect()">确认</button>
+    </div>
+    <div class="cs-hint">若整词都不会，点「全部选中」再确认</div>
+  </div>
+</div>
+
+<!-- ══════ QUICK ADD ══════ -->
+<div id="quick-add-screen">
+  <div class="qa-header">
+    <div class="qa-header-title">选出不会写的词</div>
+    <div class="qa-header-count">已选 <span id="qa-count">0</span> 个</div>
+  </div>
+  <div id="qa-content" style="flex:1;"></div>
+  <div class="qa-footer">
+    <button class="btn btn-outline flex-1" onclick="closeQuickAdd()">取消</button>
+    <button class="btn flex-1" onclick="confirmQuickAdd()">✓ 加入错题本</button>
+  </div>
+</div>
+
+</div><!-- .main -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════
+let state = {
+  wordLists: [],
+  // mistakes: { 'char': { pinyin, count, dates: ['2024/1/1',...] } }
+  mistakes: {},
+  // wrongLog: { 'char': { pinyin, count, lastDate } } — 累计错误，永不递减
+  wrongLog: {},
+  // history: [{ date, dateKey, total, correct, wrong:[], listName, mode }]
+  history: [],
+  settings: { rate: 0.8, repeat: 2 }
+};
+
+let session = {
+  queue: [], current: 0, results: [],
+  mode: 'word', listName: ''
+};
+
+// ════════════════════════════════════════
+//  PERSISTENCE — 服务器存储
+// ════════════════════════════════════════
+let _saveTimer = null;
+let _serverAvailable = false;
+
+function save() {
+  localStorage.setItem('dictation_v2', JSON.stringify(state));
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(async () => {
+    if (!_serverAvailable) return;
+    try {
+      await fetch('/api/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(state)
+      });
+    } catch(e) {
+      console.warn('保存服务器失败，已存本地', e);
+    }
+  }, 500);
+}
+
+async function load() {
+  try {
+    const raw = localStorage.getItem('dictation_v2');
+    if (raw) state = { ...state, ...JSON.parse(raw) };
+  } catch(e) {}
+  try {
+    const resp = await fetch('/api/data', { signal: AbortSignal.timeout(3000) });
+    if (resp.ok) {
+      const serverData = await resp.json();
+      state = { ...state, ...serverData };
+      _serverAvailable = true;
+      localStorage.setItem('dictation_v2', JSON.stringify(state));
+      showSyncBadge(true);
+    }
+  } catch(e) {
+    _serverAvailable = false;
+    showSyncBadge(false);
+  }
+}
+
+function showSyncBadge(online) {
+  let b = document.getElementById('sync-badge');
+  if (!b) {
+    b = document.createElement('div');
+    b.id = 'sync-badge';
+    b.style.cssText = 'position:fixed;bottom:12px;right:12px;font-size:11px;font-weight:700;padding:4px 10px;border-radius:10px;letter-spacing:1px;z-index:500;transition:all 0.3s;';
+    document.body.appendChild(b);
+  }
+  b.textContent = online ? '☁ 已同步' : '📱 本地模式';
+  b.style.background = online ? 'var(--green-light)' : 'var(--paper-dark)';
+  b.style.color = online ? 'var(--green)' : 'var(--gray)';
+}
+
+// ════════════════════════════════════════
+//  TABS
+// ════════════════════════════════════════
+function showTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const tabEl = document.querySelector(`[data-tab="${tab}"]`);
+  if (tabEl) tabEl.classList.add('active');
+  const pageEl = document.getElementById(`page-${tab}`);
+  if (pageEl) pageEl.classList.add('active');
+  if (tab === 'home') { updateHomeStats(); updateWordListSelect(); }
+  if (tab === 'wordlists') renderWordLists();
+  if (tab === 'mistakes') { renderHighFreq(); renderMistakes(); }
+  if (tab === 'history') { renderAnalysis(); renderHistory(); }
+}
+
+// ════════════════════════════════════════
+//  WORD LISTS
+// ════════════════════════════════════════
+function parseWords(raw) {
+  return raw.split('\n').map(l => l.trim()).filter(Boolean).map(l => {
+    const p = l.split('/');
+    return { text: p[0].trim(), pinyin: p[1]?.trim() || '', meaning: p[2]?.trim() || '' };
+  });
+}
+
+function nextListNumber() {
+  let max = 0;
+  state.wordLists.forEach(l => {
+    const m = l.name.match(/^#(\d+)$/);
+    if (m) max = Math.max(max, parseInt(m[1]));
+  });
+  return max + 1;
+}
+
+function saveWordList() {
+  const name = document.getElementById('new-list-name').value.trim() || ('#' + nextListNumber());
+  const raw = document.getElementById('new-list-words').value.trim();
+  if (!raw) return toast('请输入词语');
+  const words = parseWords(raw);
+  if (!words.length) return toast('解析失败');
+  state.wordLists.push({ id: Date.now().toString(), name, words });
+  save();
+  document.getElementById('new-list-name').value = '';
+  document.getElementById('new-list-words').value = '';
+  document.getElementById('word-preview').style.display = 'none';
+  renderWordLists(); updateWordListSelect();
+  toast(`词表「${name}」已保存，共 ${words.length} 个词`);
+}
+
+function renderWordLists() {
+  const c = document.getElementById('wordlist-container');
+  if (!state.wordLists.length) {
+    c.innerHTML = '<div class="empty-state"><span class="emoji">📚</span>还没有词表</div>'; return;
+  }
+  c.innerHTML = state.wordLists.map(list => `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+        <div>
+          <div style="font-weight:700;font-size:15px;">${list.name}</div>
+          <div style="font-size:12px;color:var(--gray);margin-top:2px;">${list.words.length} 个词</div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-sm btn-outline" onclick="editWordList('${list.id}')">编辑</button>
+          <button class="btn btn-sm btn-red" onclick="deleteWordList('${list.id}')">删除</button>
+        </div>
+      </div>
+      <div class="word-list-preview">
+        ${list.words.slice(0,20).map(w=>`<div class="word-chip">${w.text}</div>`).join('')}
+        ${list.words.length>20?`<div class="word-chip" style="color:var(--gray);">+${list.words.length-20}</div>`:''}
+      </div>
+    </div>`).join('');
+}
+
+function editWordList(id) {
+  const list = state.wordLists.find(l => l.id === id);
+  if (!list) return;
+  document.getElementById('new-list-name').value = list.name;
+  document.getElementById('new-list-words').value = list.words.map(w=>[w.text,w.pinyin,w.meaning].filter(Boolean).join('/')).join('\n');
+  state.wordLists = state.wordLists.filter(l => l.id !== id);
+  save(); window.scrollTo(0,0);
+  updateWordPreview();
+  toast('词表已载入，修改后点保存');
+}
+
+function deleteWordList(id) {
+  if (!confirm('确定删除？')) return;
+  state.wordLists = state.wordLists.filter(l => l.id !== id);
+  save(); renderWordLists(); updateWordListSelect(); toast('已删除');
+}
+
+function updateWordListSelect() {
+  const sel = document.getElementById('select-wordlist');
+  sel.innerHTML = '<option value="">-- 点击添加词表 --</option>' +
+    '<option value="__mistakes__">❌ 错题本</option>' +
+    state.wordLists.map(l=>{
+      const preview = l.words.slice(0, 8).map(w=>w.text).join(' ');
+      const more = l.words.length > 8 ? '…' : '';
+      return `<option value="${l.id}">${l.name} · ${preview}${more}</option>`;
+    }).join('');
+  // 清理已被删除的词表 ID
+  const validIds = new Set(['__mistakes__', ...state.wordLists.map(l => l.id)]);
+  selectedListIds = selectedListIds.filter(id => validIds.has(id));
+  renderSelectedChips();
+}
+
+// ════════════════════════════════════════
+//  DICTATION — PARENT MODE
+//  Parent sees the word, reads it aloud,
+//  child writes on paper,
+//  parent taps ✓ or ✗
+// ════════════════════════════════════════
+let currentMode = 'word';
+let selectedListIds = []; // 多选词表 ID 数组
+
+function addListToSelection() {
+  const sel = document.getElementById('select-wordlist');
+  const val = sel.value;
+  sel.value = '';
+  if (!val || selectedListIds.includes(val)) return;
+  selectedListIds.push(val);
+  renderSelectedChips();
+  updateMistakesFilter();
+}
+
+function removeFromSelection(id) {
+  selectedListIds = selectedListIds.filter(x => x !== id);
+  renderSelectedChips();
+  updateMistakesFilter();
+}
+
+function renderSelectedChips() {
+  const cont = document.getElementById('sel-chips');
+  if (!selectedListIds.length) {
+    cont.innerHTML = '<span class="sel-chips-empty">从上方下拉选择，可多选</span>';
+    return;
+  }
+  cont.innerHTML = selectedListIds.map(id => {
+    const name = id === '__mistakes__' ? '❌ 错题本'
+      : (state.wordLists.find(l => l.id === id)?.name || id);
+    return `<span class="sel-chip" onclick="removeFromSelection('${id}')">${name}<span class="sel-chip-x">×</span></span>`;
+  }).join('');
+}
+
+function updateMistakesFilter() {
+  const grp = document.getElementById('mistakes-date-group');
+  if (!selectedListIds.includes('__mistakes__')) { grp.style.display = 'none'; return; }
+  grp.style.display = '';
+  const dateSet = new Set();
+  Object.values(state.mistakes).forEach(d => (d.dates || []).forEach(dt => dateSet.add(dt)));
+  const dates = [...dateSet].sort((a, b) => b.localeCompare(a));
+  const sel = document.getElementById('select-mistakes-date');
+  sel.innerHTML = '<option value="">最新（全部）</option>' +
+    dates.map(d => {
+      const label = d === todayKey() ? `📅 今天（${d}）` : d;
+      return `<option value="${d}">${label}</option>`;
+    }).join('');
+}
+
+function selectMode(btn) {
+  document.querySelectorAll('.mode-toggle-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentMode = btn.dataset.mode;
+}
+
+function buildQueue(listIds, count, includeMistakes) {
+  const ids = Array.isArray(listIds) ? listIds : [listIds];
+  const allWords = [];
+  const seenText = new Set();
+  const dateFilter = document.getElementById('select-mistakes-date')?.value || '';
+
+  ids.forEach(listId => {
+    let words = [];
+    if (listId === '__mistakes__') {
+      // 反查每个单字所在的词组，供听写界面高亮显示
+      const charSrcMap = {};
+      state.wordLists.forEach(list => list.words.forEach(w => {
+        if ([...w.text].length > 1)
+          [...w.text].forEach(ch => { if (!charSrcMap[ch]) charSrcMap[ch] = w; });
+      }));
+      words = Object.entries(state.mistakes)
+        .filter(([, d]) => !dateFilter || (d.dates || []).includes(dateFilter))
+        .map(([text, d]) => {
+          const src = charSrcMap[text];
+          return { text, pinyin: d.pinyin || '', meaning: '', _w: d.count,
+            sourceWord: src?.text || null, sourcePinyin: src?.pinyin || null };
+        });
+    } else {
+      const list = state.wordLists.find(l => l.id === listId);
+      if (!list) return;
+      words = list.words.map(w => ({
+        ...w,
+        _w: includeMistakes ? (1 + (state.mistakes[w.text]?.count || 0) * 2) : 1
+      }));
+    }
+    words.forEach(w => {
+      if (!seenText.has(w.text)) { seenText.add(w.text); allWords.push(w); }
+    });
+  });
+
+  if (!allWords.length) return [];
+
+  // Weighted shuffle
+  let pool = [];
+  allWords.forEach(w => { for(let i=0;i<(w._w||1);i++) pool.push(w); });
+  for (let i=pool.length-1;i>0;i--) {
+    const j=Math.floor(Math.random()*(i+1));
+    [pool[i],pool[j]]=[pool[j],pool[i]];
+  }
+  const seen = new Set();
+  const deduped = pool.filter(w => { if(seen.has(w.text)) return false; seen.add(w.text); return true; });
+
+  const n = count === 'all' ? deduped.length : Math.min(parseInt(count), deduped.length);
+  return deduped.slice(0, n);
+}
+
+function startDictation() {
+  if (!selectedListIds.length) return toast('请先选择词表');
+  const count = document.getElementById('select-count').value;
+  const incl  = document.getElementById('include-mistakes').checked;
+
+  const queue = buildQueue(selectedListIds, count, incl);
+  if (!queue.length) return toast('所选词表均为空');
+
+  const listName = selectedListIds.map(id =>
+    id === '__mistakes__' ? '错题本' : (state.wordLists.find(l=>l.id===id)?.name || '')
+  ).filter(Boolean).join(' + ');
+
+  session = { queue, current: 0, results: [], mode: currentMode, listName };
+
+  document.getElementById('page-home').classList.remove('active');
+  document.getElementById('dictation-screen').classList.add('active');
+  document.getElementById('summary-screen').classList.remove('active');
+
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const { queue, current, mode } = session;
+  const word = queue[current];
+  const total = queue.length;
+
+  // Progress
+  document.getElementById('progress-bar').style.width = (current / total * 100) + '%';
+  document.getElementById('dict-counter').textContent = `${current + 1} / ${total}`;
+  document.getElementById('dict-list-badge').textContent = session.listName;
+
+  // Show the word to parent — 若来自词组则显示完整词组，目标字标红
+  const bigWordEl = document.getElementById('big-word');
+  if (word.sourceWord) {
+    bigWordEl.innerHTML = [...word.sourceWord].map(ch =>
+      ch === word.text ? `<span class="highlight-char">${ch}</span>` : ch
+    ).join('');
+  } else {
+    bigWordEl.textContent = word.text;
+  }
+
+  // Pinyin — show based on mode
+  const pinyinEl = document.getElementById('word-pinyin');
+  const speakBtn = document.getElementById('speak-btn');
+
+  if (mode === 'pinyin') {
+    pinyinEl.textContent = word.sourcePinyin || word.pinyin || '';
+    speakBtn.style.display = 'flex';
+  } else if (mode === 'audio') {
+    pinyinEl.textContent = '';
+    speakBtn.style.display = 'flex';
+    setTimeout(() => speakCurrent(), 300);
+  } else {
+    // word mode — show word, no auto-speak, no pinyin
+    pinyinEl.textContent = '';
+    speakBtn.style.display = 'flex';
+  }
+}
+
+function speakCurrent() {
+  if (session.current >= session.queue.length) return;
+  const w = session.queue[session.current];
+  speakWord(w.sourceWord || w.text);
+}
+
+function speakWord(text) {
+  const repeat = parseInt(state.settings.repeat) || 2;
+  const btn = document.getElementById('speak-btn');
+  btn && btn.classList.add('speaking');
+  window.speechSynthesis.cancel();
+  let count = 0;
+  function go() {
+    if (count >= repeat) { btn && btn.classList.remove('speaking'); return; }
+    count++;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'zh-CN';
+    u.rate = parseFloat(state.settings.rate) || 0.8;
+    u.onend = () => { if (count < repeat) setTimeout(go, 500); else btn && btn.classList.remove('speaking'); };
+    window.speechSynthesis.speak(u);
+  }
+  go();
+}
+
+// 记录单个字/词的错误（mistakes + wrongLog）
+function recordWrong(text, pinyin, today) {
+  if (!state.mistakes[text]) state.mistakes[text] = { pinyin, count: 0, dates: [] };
+  const m = state.mistakes[text];
+  m.count++;
+  if (!m.dates.includes(today)) m.dates.push(today);
+  if (!state.wrongLog) state.wrongLog = {};
+  if (!state.wrongLog[text]) state.wrongLog[text] = { pinyin, count: 0, lastDate: '' };
+  const wl = state.wrongLog[text];
+  wl.count++;
+  wl.lastDate = today;
+  if (!wl.pinyin && pinyin) wl.pinyin = pinyin;
+}
+
+function judgeAnswer(correct) {
+  const word = session.queue[session.current];
+  session.results.push({ word, correct });
+  const today = todayKey();
+
+  if (!correct) {
+    const chars = [...word.text];
+    if (chars.length > 1) {
+      // 多字词：弹出字选择浮层，暂停推进
+      showCharSelect(word, today);
+      return;
+    }
+    // 单字：直接记录
+    recordWrong(word.text, word.pinyin || '', today);
+    save();
+  } else {
+    // 答对 → 减少 mistakes 权重（word级或char级都处理）
+    [...word.text].forEach(ch => {
+      if (state.mistakes[ch]) {
+        const m = state.mistakes[ch];
+        m.count = Math.max(0, m.count - 1);
+        if (m.count === 0) delete state.mistakes[ch];
+      }
+    });
+    if (state.mistakes[word.text]) {
+      const m = state.mistakes[word.text];
+      m.count = Math.max(0, m.count - 1);
+      if (m.count === 0) delete state.mistakes[word.text];
+    }
+    save();
+  }
+
+  session.current++;
+  if (session.current >= session.queue.length) showSummary();
+  else renderQuestion();
+}
+
+// ── 字选择浮层 ──
+let _csWord = null, _csToday = '';
+
+function showCharSelect(word, today) {
+  _csWord = word; _csToday = today;
+  const chars = [...word.text];
+  const pySyl = (word.pinyin || '').trim().split(/\s+/);
+  document.getElementById('cs-chips').innerHTML = chars.map((ch, i) =>
+    `<div class="cs-chip" data-ch="${ch}" data-py="${pySyl[i]||''}" onclick="toggleCsChip(this)">
+       ${pySyl[i] ? `<div class="cs-py">${pySyl[i]}</div>` : ''}
+       <div class="cs-char">${ch}</div>
+     </div>`
+  ).join('');
+  document.getElementById('char-select-overlay').classList.add('active');
+}
+
+function toggleCsChip(el) {
+  el.classList.toggle('selected');
+}
+
+function csSelectAll() {
+  document.querySelectorAll('.cs-chip').forEach(el => el.classList.add('selected'));
+}
+
+function confirmCharSelect() {
+  const selected = document.querySelectorAll('.cs-chip.selected');
+  selected.forEach(el => recordWrong(el.dataset.ch, el.dataset.py, _csToday));
+  if (selected.length) save();
+  document.getElementById('char-select-overlay').classList.remove('active');
+  _csWord = null;
+  session.current++;
+  if (session.current >= session.queue.length) showSummary();
+  else renderQuestion();
+}
+
+function skipWord() {
+  session.results.push({ word: session.queue[session.current], correct: null });
+  session.current++;
+  if (session.current >= session.queue.length) showSummary();
+  else renderQuestion();
+}
+
+function endDictation() {
+  window.speechSynthesis.cancel();
+  if (session.results.length > 0) showSummary();
+  else {
+    document.getElementById('dictation-screen').classList.remove('active');
+    document.getElementById('page-home').classList.add('active');
+    showTab('home');
+  }
+}
+
+// ════════════════════════════════════════
+//  SUMMARY
+// ════════════════════════════════════════
+function showSummary() {
+  window.speechSynthesis.cancel();
+  document.getElementById('dictation-screen').classList.remove('active');
+  document.getElementById('summary-screen').classList.add('active');
+
+  const results = session.results;
+  const total = results.length;
+  const correct = results.filter(r => r.correct === true).length;
+  const wrong = results.filter(r => r.correct === false).map(r => r.word);
+  const pct = total > 0 ? Math.round(correct / total * 100) : 0;
+
+  document.getElementById('sum-pct').textContent = pct + '%';
+  document.getElementById('sum-pct').style.color = pct>=90?'var(--green)':pct>=60?'var(--gold)':'var(--red)';
+  document.getElementById('sum-detail').textContent = `共 ${total} 题 · 答对 ${correct} · 写错 ${wrong.length}`;
+
+  const praises = pct>=90 ? ['太棒了！继续加油！','写得真好！','全对了吗？厉害！']
+    : pct>=70 ? ['不错哦，继续努力！','加油，越来越好！']
+    : ['失败是成功之母！','多练几次就会了！'];
+  document.getElementById('sum-praise').textContent = praises[Math.floor(Math.random()*praises.length)];
+
+  if (wrong.length) {
+    document.getElementById('sum-wrong-card').style.display = 'block';
+    document.getElementById('sum-wrong-chips').innerHTML = wrong.map(w =>
+      `<div class="wrong-chip" onclick="speakWord('${w.text}')" title="${w.pinyin}">${w.text}</div>`
+    ).join('');
+  } else {
+    document.getElementById('sum-wrong-card').style.display = 'none';
+  }
+
+  // Save to history
+  state.history.unshift({
+    date: new Date().toLocaleString('zh-CN'),
+    dateKey: todayKey(),
+    total, correct,
+    wrong: wrong.map(w => w.text),
+    listName: session.listName,
+    mode: session.mode
+  });
+  if (state.history.length > 200) state.history.pop();
+  save();
+  updateHomeStats();
+}
+
+function restartSummary() {
+  document.getElementById('summary-screen').classList.remove('active');
+  showTab('home');
+}
+
+function practiceWrong() {
+  document.getElementById('summary-screen').classList.remove('active');
+  if (!selectedListIds.includes('__mistakes__')) selectedListIds.push('__mistakes__');
+  renderSelectedChips();
+  updateMistakesFilter();
+  showTab('home');
+  toast('已添加错题本，点开始听写');
+}
+
+function backHome() {
+  document.getElementById('summary-screen').classList.remove('active');
+  showTab('home');
+}
+
+// ════════════════════════════════════════
+//  MISTAKES — by date
+// ════════════════════════════════════════
+function renderHighFreq() {
+  const cont = document.getElementById('hf-container');
+  if (!state.wrongLog) { state.wrongLog = {}; }
+  const entries = Object.entries(state.wrongLog)
+    .map(([text, d]) => ({ text, pinyin: d.pinyin || '', count: d.count, lastDate: d.lastDate || '' }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 15);
+  if (!entries.length) {
+    cont.innerHTML = '<div class="empty-state"><span class="emoji">📊</span>完成几次听写后这里会显示高频错词</div>';
+    return;
+  }
+  const maxCount = entries[0].count;
+  cont.innerHTML = `<div class="hf-list">` +
+    entries.map((e, i) => {
+      const pct = Math.round(e.count / maxCount * 100);
+      const lvl = e.count >= 6 ? 'lvl3' : e.count >= 3 ? 'lvl2' : 'lvl1';
+      const rankCls = i < 3 ? ' top3' : '';
+      return `<div class="hf-item">
+        <span class="hf-rank${rankCls}">${i + 1}</span>
+        <div class="hf-word">
+          <span class="hf-char">${e.text}</span>
+          ${e.pinyin ? `<span class="hf-pinyin">${e.pinyin}</span>` : ''}
+        </div>
+        <div class="hf-bar-wrap"><div class="hf-bar ${lvl}" style="width:${pct}%"></div></div>
+        <span class="hf-count">${e.count}次</span>
+      </div>`;
+    }).join('') + `</div>
+    <div style="margin-top:10px;font-size:11px;color:var(--gray);">共记录 ${Object.keys(state.wrongLog).length} 个词的错误历史</div>`;
+}
+
+function renderMistakes() {
+  const cont = document.getElementById('mistakes-container');
+  const entries = Object.entries(state.mistakes);
+  if (!entries.length) {
+    cont.innerHTML = '<div class="empty-state"><span class="emoji">🎉</span>暂无错题！</div>';
+    return;
+  }
+
+  // Group by date — collect all dates across all words
+  const byDate = {}; // { dateKey: [{text, pinyin, count}] }
+  entries.forEach(([text, data]) => {
+    const dates = data.dates || [];
+    if (!dates.length) {
+      // Legacy — no date info
+      const key = '未知日期';
+      if (!byDate[key]) byDate[key] = [];
+      byDate[key].push({ text, pinyin: data.pinyin || '', count: data.count });
+    } else {
+      dates.forEach(d => {
+        if (!byDate[d]) byDate[d] = [];
+        // Avoid duplicate entry for same word same date
+        if (!byDate[d].find(w => w.text === text)) {
+          byDate[d].push({ text, pinyin: data.pinyin || '', count: data.count });
+        }
+      });
+    }
+  });
+
+  // Sort dates descending
+  const sortedDates = Object.keys(byDate).sort((a, b) => {
+    if (a === '未知日期') return 1;
+    if (b === '未知日期') return -1;
+    return b.localeCompare(a);
+  });
+
+  cont.innerHTML = sortedDates.map(date => {
+    const words = byDate[date];
+    const label = formatDateLabel(date);
+    return `
+      <div class="date-group">
+        <div class="date-group-header">
+          <div class="date-label">${label}</div>
+          <div class="date-count">${words.length} 个错字</div>
+        </div>
+        <div class="date-words">
+          ${words.map(w => `
+            <div class="mistake-word-card" onclick="speakWord('${w.text}')">
+              <span class="mistake-char">${w.text}</span>
+              ${w.pinyin ? `<div class="mistake-pinyin">${w.pinyin}</div>` : ''}
+              <div class="mistake-freq">错 ${w.count} 次</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function formatDateLabel(key) {
+  if (key === '未知日期') return '未知日期';
+  const today = todayKey();
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+  const yKey = yesterday.toLocaleDateString('zh-CN');
+  if (key === today) return `📅 今天（${key}）`;
+  if (key === yKey) return `昨天（${key}）`;
+  return key;
+}
+
+function practiceWrongAll() {
+  if (!Object.keys(state.mistakes).length) return toast('错题本是空的');
+  if (!selectedListIds.includes('__mistakes__')) selectedListIds.push('__mistakes__');
+  renderSelectedChips();
+  updateMistakesFilter();
+  showTab('home');
+  toast('已添加错题本，点开始听写');
+}
+
+function generateZitie() {
+  // 只取单字错题；词组中具体不会写的字已通过字选择浮层单独记录
+  const entries = Object.entries(state.mistakes).filter(([w]) => [...w].length === 1);
+  if (!entries.length) return toast('错题本中暂无单字记录，听写时点「写错了」选择具体字即可生成字帖');
+
+  // 从所有词表反查每个单字的来源词组
+  const charSourceMap = {};
+  state.wordLists.forEach(list => {
+    list.words.forEach(w => {
+      if ([...w.text].length > 1) {
+        [...w.text].forEach(ch => {
+          if (!charSourceMap[ch]) charSourceMap[ch] = [];
+          if (!charSourceMap[ch].includes(w.text)) charSourceMap[ch].push(w.text);
+        });
+      }
+    });
+  });
+
+  // 构建单字列表（去重）
+  const seen = new Set();
+  const charList = [];
+  entries.forEach(([ch, info]) => {
+    if (!seen.has(ch)) {
+      seen.add(ch);
+      charList.push({ ch, py: info.pinyin || '', sources: charSourceMap[ch] || [] });
+    }
+  });
+
+  const TRACE = 2, EMPTY = 7;
+  const rows = charList.map(({ ch, py, sources }) => {
+    const cells = [
+      `<div class="cw"><div class="py">${py}</div><div class="zg model"><span class="ch">${ch}</span></div></div>`,
+      ...Array(TRACE).fill(`<div class="cw"><div class="py">${py}</div><div class="zg trace"><span class="ch">${ch}</span></div></div>`),
+      ...Array(EMPTY).fill(`<div class="cw"><div class="py"></div><div class="zg empty"></div></div>`)
+    ].join('');
+    const srcLabel = sources.length
+      ? `<div class="char-word-label">${sources.slice(0, 3).join('　')}</div>`
+      : '';
+    return `<div class="char-entry">${srcLabel}<div class="so-strip" data-char="${ch}"><span class="so-loading">笔顺加载中…</span></div><div class="char-row">${cells}</div></div>`;
+  }).join('');
+
+  const today = new Date().toLocaleDateString('zh-CN');
+  const html = `<!DOCTYPE html>
+<html lang="zh"><head><meta charset="UTF-8"><title>听写字帖</title><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:sans-serif;background:#fff;padding:20px}
+.no-print{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+.print-btn{padding:8px 20px;background:#4a90e2;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:bold}
+.print-btn:hover:not(:disabled){background:#357abd}
+.print-btn:disabled{background:#aaa;cursor:wait}
+.header{display:flex;align-items:baseline;gap:24px;margin-bottom:18px;border-bottom:1px solid #ccc;padding-bottom:10px}
+.title{font-size:18px;font-weight:bold;white-space:nowrap}
+.header-fields{display:flex;gap:24px;flex-wrap:wrap}
+.field{display:flex;align-items:baseline;gap:6px;font-size:13px}
+.field-line{border-bottom:1px solid #555;display:inline-block;min-width:80px}
+.char-word-label{font-size:13px;color:#888;letter-spacing:3px;margin-bottom:3px;padding-left:2px}
+.so-strip{display:flex;flex-wrap:wrap;gap:2px;margin-bottom:3px;min-height:36px;align-items:flex-end}
+.so-step{display:inline-flex;flex-direction:column;align-items:center;gap:1px}
+.so-num{font-size:8px;color:#bbb;line-height:1;text-align:center}
+.so-loading{font-size:10px;color:#ccc;align-self:center}
+.char-row{display:flex;gap:4px;margin-bottom:4px;flex-wrap:nowrap}
+.cw{display:flex;flex-direction:column;align-items:center}
+.py{font-size:11px;color:#666;height:15px;line-height:15px;text-align:center}
+.zg{width:52px;height:52px;border:1.5px solid #444;position:relative;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.zg::before{content:'';position:absolute;left:50%;top:0;bottom:0;transform:translateX(-50%);border-left:1px dashed #ccc;pointer-events:none}
+.zg::after{content:'';position:absolute;top:50%;left:0;right:0;transform:translateY(-50%);border-top:1px dashed #ccc;pointer-events:none}
+.ch{font-size:40px;font-family:'SimSun','宋体','STSong','NSimSun',serif;line-height:1;position:relative;z-index:1;user-select:none}
+.model .ch{color:#111}
+.trace .ch{color:rgba(220,80,80,0.38)}
+@media print{
+  .no-print{display:none!important}
+  body{padding:0;margin:0}
+  .header{padding:8mm 15mm 4mm;margin:0}
+  .char-entry{break-inside:avoid;margin-bottom:4mm;padding:0 15mm}
+  .char-word-label{font-size:3.5mm;color:#999;letter-spacing:1.5mm;margin-bottom:1mm}
+  .so-strip{min-height:12mm;gap:1mm;margin-bottom:1.5mm}
+  .so-step svg{width:9mm!important;height:9mm!important}
+  .so-num{font-size:2mm}
+  .char-row{gap:1.5mm;margin-bottom:0;padding:0}
+  .zg{width:17mm;height:17mm}
+  .ch{font-size:12.5mm}
+  .py{font-size:3mm;height:4.5mm;line-height:4.5mm}
+  @page{size:A4 portrait;margin:8mm 0}
+}
+</style></head>
+<body>
+<div class="no-print">
+  <button class="print-btn" id="zitie-print-btn" onclick="window.print()" disabled>⌛ 笔顺加载中…</button>
+  <span style="font-size:12px;color:#888" id="zitie-hint">请稍候，正在联网加载笔顺数据</span>
+</div>
+<div class="header">
+  <div class="title">听写练习字帖</div>
+  <div class="header-fields">
+    <div class="field">姓名：<span class="field-line">&nbsp;</span></div>
+    <div class="field">日期：<span class="field-line">${today}</span></div>
+  </div>
+</div>
+${rows}
+<script>
+// 渲染单个字的笔顺格条
+// HanziWriter 数据坐标系：1024×1024，原点在左下角，Y轴向上 → SVG 需要翻转
+function renderStrip(container, data) {
+  var strokes = data.strokes;
+  var n = strokes.length;
+  var SIZE = 28;
+  // 超过12笔画时取10个均匀分布的步骤，避免太宽
+  var steps = [];
+  if (n <= 12) {
+    for (var i = 1; i <= n; i++) steps.push(i);
+  } else {
+    var set = new Set();
+    for (var k = 0; k < 10; k++) set.add(Math.round(1 + k * (n - 1) / 9));
+    steps = Array.from(set).sort(function(a,b){return a-b;});
+  }
+  container.innerHTML = steps.map(function(step) {
+    var ph = '';
+    for (var i = 0; i < step; i++) {
+      var color = (i === step - 1) ? '#cc2222' : '#cccccc';
+      ph += '<path d="' + strokes[i] + '" fill="' + color + '"/>';
+    }
+    return '<div class="so-step">'
+      + '<svg width="' + SIZE + '" height="' + SIZE + '" viewBox="0 0 1024 1024">'
+      + '<g transform="scale(1,-1) translate(0,-1024)">' + ph + '</g>'
+      + '</svg>'
+      + '<div class="so-num">' + step + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+// 逐字加载笔顺数据
+async function loadStrokes() {
+  var strips = document.querySelectorAll('.so-strip[data-char]');
+  var btn = document.getElementById('zitie-print-btn');
+  var hint = document.getElementById('zitie-hint');
+  var done = 0, total = strips.length;
+  for (var i = 0; i < strips.length; i++) {
+    var strip = strips[i];
+    var ch = strip.dataset.char;
+    try {
+      var r = await fetch('https://cdn.jsdelivr.net/npm/hanzi-writer-data@2.0/' + encodeURIComponent(ch) + '.json');
+      if (r.ok) renderStrip(strip, await r.json());
+      else strip.innerHTML = '';
+    } catch(e) { strip.innerHTML = ''; }
+    done++;
+    if (btn) btn.textContent = '\u231B ' + done + ' / ' + total + ' 字';
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '\uD83D\uDDA8\uFE0F 打印 / 导出 PDF'; }
+  if (hint) hint.textContent = '打印时选 A4 纸、「另存为 PDF」即可';
+}
+loadStrokes();
+<\/script>
+</body></html>`;
+
+  const win = window.open('', '_blank');
+  if (!win) return toast('请允许浏览器弹窗后重试');
+  win.document.write(html);
+  win.document.close();
+}
+
+function clearMistakes() {
+  if (!confirm('确定清空全部错题？')) return;
+  state.mistakes = {}; save(); renderMistakes(); updateHomeStats(); toast('已清空');
+}
+
+// ════════════════════════════════════════
+//  QUICK ADD — mid-session onboarding
+// ════════════════════════════════════════
+let qaSelection = new Map(); // text → pinyin
+
+function openQuickAdd() {
+  if (!state.wordLists.length) return toast('还没有词表，请先添加词表');
+  qaSelection = new Map();
+  document.getElementById('qa-count').textContent = '0';
+
+  // Build word map for dedup across lists: text → pinyin (first occurrence)
+  // But still display per-list for context
+  document.getElementById('qa-content').innerHTML = state.wordLists.map(list => {
+    if (!list.words.length) return '';
+    const chips = list.words.map(w => {
+      const t = w.text; const py = w.pinyin || '';
+      return `<div class="qa-chip" data-text="${t.replace(/"/g,'&quot;')}" data-py="${py.replace(/"/g,'&quot;')}" onclick="toggleQA(this)">
+        ${py ? `<div class="qa-py">${py}</div>` : ''}
+        <div class="qa-char">${t}</div>
+      </div>`;
+    }).join('');
+    return `<div class="qa-group"><div class="qa-group-name">${list.name}</div><div class="qa-chips">${chips}</div></div>`;
+  }).join('');
+
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('quick-add-screen').classList.add('active');
+}
+
+function toggleQA(el) {
+  const text = el.dataset.text;
+  const py   = el.dataset.py;
+  if (qaSelection.has(text)) {
+    qaSelection.delete(text);
+    document.querySelectorAll(`.qa-chip[data-text="${text.replace(/"/g,'\\"')}"]`).forEach(c => c.classList.remove('selected'));
+  } else {
+    qaSelection.set(text, py);
+    document.querySelectorAll(`.qa-chip[data-text="${text.replace(/"/g,'\\"')}"]`).forEach(c => c.classList.add('selected'));
+  }
+  document.getElementById('qa-count').textContent = qaSelection.size;
+}
+
+function closeQuickAdd() {
+  document.getElementById('quick-add-screen').classList.remove('active');
+  showTab('home');
+  qaSelection = new Map();
+}
+
+function confirmQuickAdd() {
+  if (!qaSelection.size) return toast('请先点选不会写的词');
+  const today = todayKey();
+  qaSelection.forEach((pinyin, text) => {
+    if (!state.mistakes[text]) {
+      state.mistakes[text] = { pinyin, count: 1, dates: [today] };
+    } else {
+      const m = state.mistakes[text];
+      if (!m.pinyin && pinyin) m.pinyin = pinyin;
+      m.count = (m.count || 0) + 1;
+      if (!m.dates) m.dates = [];
+      if (!m.dates.includes(today)) m.dates.push(today);
+    }
+  });
+  save();
+  const n = qaSelection.size;
+  closeQuickAdd();
+  updateHomeStats();
+  toast(`已将 ${n} 个词加入错题本`);
+}
+
+// ════════════════════════════════════════
+//  HISTORY
+// ════════════════════════════════════════
+// ════════════════════════════════════════
+//  ANALYSIS
+// ════════════════════════════════════════
+function renderAnalysis() {
+  const container = document.getElementById('analysis-container');
+  const content   = document.getElementById('analysis-content');
+  if (!state.history.length && !Object.keys(state.wrongLog || {}).length) {
+    container.style.display = 'none'; return;
+  }
+  container.style.display = '';
+
+  const wl = state.wrongLog || {};
+  const mk = state.mistakes || {};
+  const hist = state.history;
+
+  // ── 1. Overview ──────────────────────────────────────
+  const total = hist.length;
+  const totalWords = hist.reduce((s,h) => s + h.total, 0);
+  const avgPct = total ? Math.round(hist.reduce((s,h) => s + (h.total > 0 ? h.correct/h.total*100 : 0), 0) / total) : 0;
+
+  // consecutive study days (streak): walk back from today
+  const daySet = new Set(hist.map(h => h.dateKey || h.date?.split(' ')[0] || ''));
+  let streak = 0;
+  const msPerDay = 86400000;
+  let d = new Date(); d.setHours(0,0,0,0);
+  while (true) {
+    const key = d.toLocaleDateString('zh-CN');
+    if (daySet.has(key)) { streak++; d = new Date(d - msPerDay); }
+    else if (streak === 0) { d = new Date(d - msPerDay); if (new Date() - d > 2*msPerDay) break; }
+    else break;
+  }
+
+  const overviewHtml = `
+  <div class="an-section">
+    <div class="an-section-title">概览</div>
+    <div class="stats-grid" style="margin-bottom:10px;">
+      <div class="stat-box"><div class="stat-number">${total}</div><div class="stat-label">总次数</div></div>
+      <div class="stat-box"><div class="stat-number">${totalWords}</div><div class="stat-label">总听写</div></div>
+      <div class="stat-box"><div class="stat-number">${avgPct}%</div><div class="stat-label">平均正确</div></div>
+    </div>
+    <div class="streak-badge">🔥 <b>${streak}</b> 天连续练习</div>
+  </div>`;
+
+  // ── 2. Accuracy trend (last 10 sessions) ─────────────
+  const recent = hist.slice(-10);
+  const trendHtml = recent.length < 2 ? '' : `
+  <div class="an-section">
+    <div class="an-section-title">近期准确率趋势（最近 ${recent.length} 次）</div>
+    <div class="trend-bars">
+      ${recent.map(h => {
+        const pct = h.total > 0 ? Math.round(h.correct/h.total*100) : 0;
+        const cls = pct>=90?'hi':pct>=60?'mid':'lo';
+        const heightPx = Math.max(4, Math.round(pct * 0.56)); // max 56px
+        const dateLabel = (h.dateKey || h.date || '').replace(/\d+\/(\d+)\/(\d+)/,'$1/$2');
+        return `<div class="trend-bar-wrap">
+          <div class="trend-bar ${cls}" style="height:${heightPx}px;" title="${pct}%"></div>
+          <div class="trend-label">${dateLabel}</div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+
+  // ── 3. Mastery progress ───────────────────────────────
+  // All chars ever seen in wrongLog
+  const allWl = Object.keys(wl);
+  if (allWl.length > 0) {
+    // mastered = in wrongLog, NOT in mistakes
+    const mastered = allWl.filter(c => !mk[c]);
+    // hard = still in mistakes AND wrongLog count >= 3
+    const hard = allWl.filter(c => mk[c] && wl[c].count >= 3);
+    // active = still in mistakes but wrongLog count < 3
+    const active = allWl.filter(c => mk[c] && wl[c].count < 3);
+    const tot = allWl.length;
+    const masteredPct = Math.round(mastered.length/tot*100);
+    const activePct   = Math.round(active.length/tot*100);
+    const hardPct     = 100 - masteredPct - activePct;
+
+    // Top hard chars: sort by wrongLog count desc, still in mistakes
+    const hardSorted = Object.entries(wl)
+      .filter(([c]) => mk[c])
+      .sort(([,a],[,b]) => b.count - a.count)
+      .slice(0, 12);
+
+    // Graduated chars: in wrongLog, not in mistakes, count >= 2
+    const graduated = Object.entries(wl)
+      .filter(([c,d]) => !mk[c] && d.count >= 2)
+      .sort(([,a],[,b]) => b.count - a.count)
+      .slice(0, 12);
+
+    const masteryHtml = `
+    <div class="an-section">
+      <div class="an-section-title">掌握进度（共 ${tot} 个错词）</div>
+      <div class="mastery-bar-wrap">
+        <div class="mastery-bar-fill">
+          <div class="mastery-seg-master" style="width:${masteredPct}%"></div>
+          <div class="mastery-seg-active" style="width:${activePct}%"></div>
+          <div class="mastery-seg-hard"   style="width:${hardPct}%"></div>
+        </div>
+      </div>
+      <div class="mastery-legend">
+        <span class="l-master">已掌握 ${mastered.length}</span>
+        <span class="l-active">练习中 ${active.length}</span>
+        <span class="l-hard">需加强 ${hard.length}</span>
+      </div>
+    </div>
+
+    ${hardSorted.length ? `
+    <div class="an-section">
+      <div class="an-section-title">需重点关注</div>
+      <div class="an-pills">
+        ${hardSorted.map(([c,d]) => {
+          const cls = d.count >= 6 ? 'danger' : d.count >= 3 ? 'warn' : '';
+          return `<span class="an-pill ${cls}">${c}<span class="an-cnt">${d.count}次</span></span>`;
+        }).join('')}
+      </div>
+    </div>` : ''}
+
+    ${graduated.length ? `
+    <div class="an-section">
+      <div class="an-section-title">已取得进步 🎉</div>
+      <div class="an-pills">
+        ${graduated.map(([c,d]) => `<span class="an-pill ok">${c}<span class="an-cnt">${d.count}次→✓</span></span>`).join('')}
+      </div>
+    </div>` : ''}`;
+
+    content.innerHTML = overviewHtml + trendHtml + masteryHtml;
+  } else {
+    content.innerHTML = overviewHtml + trendHtml;
+  }
+}
+
+function renderHistory() {
+  const cont = document.getElementById('history-container');
+  if (!state.history.length) {
+    document.getElementById('history-total-stats').innerHTML = '';
+    cont.innerHTML = '<div class="empty-state"><span class="emoji">📝</span>还没有记录</div>';
+    return;
+  }
+
+  const total = state.history.length;
+  const totalWords = state.history.reduce((s,h) => s + h.total, 0);
+  const avgPct = Math.round(state.history.reduce((s,h) => s + (h.correct/h.total*100||0), 0) / total);
+  document.getElementById('history-total-stats').innerHTML = `
+    <div class="stat-box"><div class="stat-number">${total}</div><div class="stat-label">总次数</div></div>
+    <div class="stat-box"><div class="stat-number">${totalWords}</div><div class="stat-label">总听写</div></div>
+    <div class="stat-box"><div class="stat-number">${avgPct}%</div><div class="stat-label">平均正确</div></div>
+  `;
+
+  cont.innerHTML = state.history.slice(0,50).map(h => {
+    const pct = h.total > 0 ? Math.round(h.correct/h.total*100) : 0;
+    const cls = pct>=90?'score-hi':pct>=60?'score-mid':'score-lo';
+    return `<div class="history-item">
+      <div class="history-date">${h.date}</div>
+      <div class="history-score ${cls}">${pct}%</div>
+      <div class="history-detail">
+        ${h.listName} · ${h.total}题对${h.correct}
+        ${h.wrong.length ? `<br><span class="history-wrong-chars">${h.wrong.slice(0,8).join(' ')}${h.wrong.length>8?'…':''}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════
+//  HOME STATS
+// ════════════════════════════════════════
+function todayKey() { return new Date().toLocaleDateString('zh-CN'); }
+
+function updateHomeStats() {
+  const today = todayKey();
+  const todayH = state.history.filter(h => h.dateKey === today || h.date?.startsWith(today));
+  document.getElementById('stat-today').textContent = todayH.reduce((s,h)=>s+h.total,0);
+  document.getElementById('stat-correct').textContent = todayH.reduce((s,h)=>s+h.correct,0);
+  document.getElementById('stat-mistakes').textContent = Object.keys(state.mistakes).length;
+}
+
+// ════════════════════════════════════════
+//  SETTINGS
+// ════════════════════════════════════════
+function initSettings() {
+  const rateEl = document.getElementById('speech-rate');
+  const rateDisp = document.getElementById('rate-display');
+  rateEl.value = state.settings.rate;
+  rateDisp.textContent = state.settings.rate;
+  rateEl.oninput = () => {
+    state.settings.rate = parseFloat(rateEl.value);
+    rateDisp.textContent = rateEl.value;
+    save();
+  };
+  const repeatEl = document.getElementById('speech-repeat');
+  repeatEl.value = state.settings.repeat;
+  repeatEl.onchange = () => { state.settings.repeat = parseInt(repeatEl.value); save(); };
+}
+
+// ════════════════════════════════════════
+//  DATA
+// ════════════════════════════════════════
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `听写数据_${todayKey().replace(/\//g,'-')}.json`;
+  a.click();
+  toast('数据已导出');
+}
+
+function importData(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const d = JSON.parse(ev.target.result);
+      if (d.wordLists) {
+        state.wordLists = [...state.wordLists, ...(d.wordLists||[])];
+        state.mistakes = { ...(d.mistakes||{}), ...state.mistakes };
+        state.history = [...(d.history||[]), ...state.history].slice(0,200);
+        save(); updateWordListSelect(); updateHomeStats(); toast('导入成功');
+      }
+    } catch { toast('文件格式错误'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function resetAll() {
+  if (!confirm('确定清空所有数据？不可恢复！')) return;
+  state = { wordLists:[], mistakes:{}, history:[], settings:{rate:0.8,repeat:2} };
+  save(); renderWordLists(); updateWordListSelect(); updateHomeStats(); toast('已清空');
+}
+
+// ════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════
+let _toastT;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(_toastT);
+  _toastT = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ════════════════════════════════════════
+//  PHOTO WORDLISTS — preserved from before
+// ════════════════════════════════════════
+const PHOTO_WORDLISTS = [
+  {
+    name: '#1',
+    words: `他/tā
+金/jīn
+分/fēn
+照/zhào
+今/jīn
+古/gǔ
+站/zhàn
+如/rú`
+  },
+  {
+    name: '#2',
+    words: `松/sōng
+坐/zuò
+钟/zhōng
+行/xíng
+卧/wò
+弓/gōng`
+  },
+  {
+    name: '#3',
+    words: `秀/xiù
+绿/lǜ
+柳/liǔ
+清/qīng
+数/shù
+川/chuān
+鸟/niǎo`
+  },
+  {
+    name: '#4',
+    words: `雪/xuě
+对/duì
+雨/yǔ
+无/wú
+都/dōu
+地/dì
+红/hóng
+桃/táo`
+  },
+  {
+    name: '#5',
+    words: `见/jiàn
+片/piàn
+飞/fēi
+向/xiàng
+鹅/é
+光/guāng`
+  },
+  {
+    name: '#6',
+    words: `身/shēn
+体/tǐ
+入/rù
+见/jiàn
+九/jiǔ
+朵/duǒ
+白/bái
+菜/cài`
+  },
+  {
+    name: '#7',
+    words: `西瓜/xī guā
+竹/zhú
+羊/yáng
+兔/tù
+分/fēn
+他/tā
+树/shù`
+  },
+  {
+    name: '#8',
+    words: `花/huā
+八/bā
+片/piàn
+爸/bà
+妈/mā
+马/mǎ
+路/lù
+地/dì`
+  },
+  {
+    name: '#9',
+    words: `龙/lóng
+害/hài
+保/bǎo
+护/hù
+灯/dēng
+呼/hū
+本/běn`
+  },
+  {
+    name: '#10',
+    words: `学/xué
+校/xiào
+班/bān
+级/jí
+姓/xìng
+名/míng
+王/wáng`
+  },
+  {
+    name: '#11',
+    words: `国/guó
+哥/gē
+弟/dì
+画/huà
+打/dǎ
+棋/qí
+积/jī
+木/mù
+字/zì`
+  },
+  {
+    name: '#12',
+    words: `词/cí
+句/jù
+桌/zhuō
+纸/zhǐ
+读/dú
+书/shū
+鱼/yú
+鸭/yā`
+  },
+  {
+    name: '#13',
+    words: `乌/wū
+鸦/yā
+午/wǔ
+星/xīng
+期/qī
+语/yǔ
+文/wén`
+  },
+  {
+    name: '#14',
+    words: `数/shǔ
+写/xiě
+会/huì
+座/zuò
+棵/kē
+只/zhī`
+  },
+  {
+    name: '#15',
+    words: `果/guǒ
+桥/qiáo
+流/liú
+柳/liǔ
+开/kāi
+雪/xuě
+色/sè`
+  },
+  {
+    name: '#16',
+    words: `蓝/lán
+云/yún
+草/cǎo
+原/yuán
+冰/bīng
+自/zì
+行/xíng`
+  },
+  {
+    name: '#17',
+    words: `车/chē
+晚/wǎn
+晴/qíng
+明/míng
+这/zhè
+去/qù
+年/nián`
+  },
+  {
+    name: '#18',
+    words: `歌/gē
+雨/yǔ
+清/qīng
+绿/lǜ
+桃/táo
+红/hóng
+秋/qiū`
+  },
+  {
+    name: '#19',
+    words: `气/qì
+了/le
+树/shù
+叶/yè
+黄/huáng
+片/piàn
+从/cóng`
+  },
+  {
+    name: '#20',
+    words: `来/lái
+飞/fēi
+门/mén
+句/jù
+会/huì
+群/qún
+美/měi`
+  },
+  {
+    name: '#21',
+    words: `高/gāo
+低/dī
+群/qún
+员/yuán
+空/kōng
+江/jiāng
+南/nán`
+  },
+  {
+    name: '#22',
+    words: `可/kě
+采/cǎi
+莲/lián
+戏/xì
+间/jiān
+东/dōng
+北/běi`
+  },
+  {
+    name: '#23',
+    words: `见/jiàn
+西/xī
+南/nán
+的/de
+家/jiā
+鸡/jī
+竹/zhú
+子/zǐ`
+  },
+  {
+    name: '#24',
+    words: `牙/yá
+用/yòng
+几/jǐ
+步/bù
+没/méi
+参/cān
+加/jiā`
+  },
+  {
+    name: '#25',
+    words: `用/yòng
+乌/wū
+积/jī
+家/jiā
+年/nián
+入/rù
+画/huà`
+  },
+  {
+    name: '#26',
+    words: `鸟/niǎo
+说/shuō
+是/shì
+春/chūn
+青/qīng
+蛙/wā
+夏/xià`
+  },
+  {
+    name: '#27',
+    words: `着/zhe
+皮/pí
+地/dì
+就/jiù
+春/chūn
+夏/xià
+秋/qiū`
+  },
+  {
+    name: '#28',
+    words: `冬/dōng
+季/jì
+弯/wān
+直/zhí
+尖/jiān
+男/nán
+女/nǚ`
+  },
+  {
+    name: '#29',
+    words: `关/guān
+正/zhèng
+反/fǎn
+先/xiān
+后/hòu
+内/nèi
+外/wài`
+  },
+  {
+    name: '#31',
+    words: `女/nǚ
+开/kāi
+打/dǎ
+路/lù
+哥/gē
+力/lì
+尘/chén`
+  },
+  {
+    name: '#32',
+    words: `众/zhòng
+双/shuāng
+林/lín
+森/sēn
+不/bù
+条/tiáo
+心/xīn`
+  },
+  {
+    name: '#33',
+    words: `包/bāo
+尺/chǐ
+作/zuò
+业/yè
+笔/bǐ
+刀/dāo
+宝/bǎo`
+  },
+  {
+    name: '#34',
+    words: `贝/bèi
+少/shǎo
+课/kè
+早/zǎo
+晚/wǎn
+升/shēng
+国/guó`
+  },
+  {
+    name: '#35',
+    words: `旗/qí
+中/zhōng
+们/men
+声/shēng
+音/yīn
+起/qǐ
+多/duō`
+  },
+  {
+    name: '#36',
+    words: `么/me
+向/xiàng
+立/lì
+力/lì
+降/jiàng
+美/měi
+丑/chǒu`
+  },
+  {
+    name: '#37',
+    words: `慢/màn
+正/zhèng
+老/lǎo
+师/shī
+工/gōng
+厂/chǎng`
+  },
+  {
+    name: '#38',
+    words: `医/yī
+院/yuàn
+生/shēng
+门/mén
+卫/wèi`
+  },
+  {
+    name: '#39',
+    words: `男/nán
+你/nǐ
+生/shēng
+字/zì
+纸/zhǐ
+船/chuán
+弯/wā`
+  },
+  {
+    name: '#40',
+    words: `儿/ér
+两/liǎng
+头/tóu
+在/zài
+里/lǐ
+看/kàn
+见/jiàn`
+  },
+  {
+    name: '#全部',
+    words: `他/tā
+金/jīn
+分/fēn
+照/zhào
+今/jīn
+古/gǔ
+站/zhàn
+如/rú
+松/sōng
+坐/zuò
+钟/zhōng
+行/xíng
+卧/wò
+弓/gōng
+秀/xiù
+绿/lǜ
+柳/liǔ
+清/qīng
+数/shù
+川/chuān
+鸟/niǎo
+雪/xuě
+对/duì
+雨/yǔ
+无/wú
+都/dōu
+地/dì
+红/hóng
+桃/táo
+见/jiàn
+片/piàn
+飞/fēi
+向/xiàng
+鹅/é
+光/guāng
+身/shēn
+体/tǐ
+入/rù
+九/jiǔ
+朵/duǒ
+白/bái
+菜/cài
+西瓜/xī guā
+竹/zhú
+羊/yáng
+兔/tù
+树/shù
+花/huā
+八/bā
+爸/bà
+妈/mā
+马/mǎ
+路/lù
+龙/lóng
+害/hài
+保/bǎo
+护/hù
+灯/dēng
+呼/hū
+本/běn
+学/xué
+校/xiào
+班/bān
+级/jí
+姓/xìng
+名/míng
+王/wáng
+国/guó
+哥/gē
+弟/dì
+画/huà
+打/dǎ
+棋/qí
+积/jī
+木/mù
+字/zì
+词/cí
+句/jù
+桌/zhuō
+纸/zhǐ
+读/dú
+书/shū
+鱼/yú
+鸭/yā
+乌/wū
+鸦/yā
+午/wǔ
+星/xīng
+期/qī
+语/yǔ
+文/wén
+写/xiě
+会/huì
+座/zuò
+棵/kē
+只/zhī
+果/guǒ
+桥/qiáo
+流/liú
+开/kāi
+色/sè
+蓝/lán
+云/yún
+草/cǎo
+原/yuán
+冰/bīng
+自/zì
+车/chē
+晚/wǎn
+晴/qíng
+明/míng
+这/zhè
+去/qù
+年/nián
+歌/gē
+秋/qiū
+气/qì
+了/le
+叶/yè
+黄/huáng
+从/cóng
+来/lái
+门/mén
+群/qún
+美/měi
+高/gāo
+低/dī
+员/yuán
+空/kōng
+江/jiāng
+南/nán
+可/kě
+采/cǎi
+莲/lián
+戏/xì
+间/jiān
+东/dōng
+北/běi
+西/xī
+的/de
+家/jiā
+鸡/jī
+子/zǐ
+牙/yá
+用/yòng
+几/jǐ
+步/bù
+没/méi
+参/cān
+加/jiā
+说/shuō
+是/shì
+春/chūn
+青/qīng
+蛙/wā
+夏/xià
+着/zhe
+皮/pí
+就/jiù
+冬/dōng
+季/jì
+弯/wān
+直/zhí
+尖/jiān
+男/nán
+女/nǚ
+关/guān
+正/zhèng
+反/fǎn
+先/xiān
+后/hòu
+内/nèi
+外/wài
+力/lì
+尘/chén
+众/zhòng
+双/shuāng
+林/lín
+森/sēn
+不/bù
+条/tiáo
+心/xīn
+包/bāo
+尺/chǐ
+作/zuò
+业/yè
+笔/bǐ
+刀/dāo
+宝/bǎo
+贝/bèi
+少/shǎo
+课/kè
+早/zǎo
+升/shēng
+旗/qí
+中/zhōng
+们/men
+声/shēng
+音/yīn
+起/qǐ
+多/duō
+么/me
+立/lì
+降/jiàng
+丑/chǒu
+慢/màn
+老/lǎo
+师/shī
+工/gōng
+厂/chǎng
+医/yī
+院/yuàn
+生/shēng
+卫/wèi
+你/nǐ
+船/chuán
+儿/ér
+两/liǎng
+头/tóu
+在/zài
+里/lǐ
+看/kàn`
+  }
+];
+
+function importPreset() {
+  let imported = 0;
+  PHOTO_WORDLISTS.forEach(list => {
+    const words = parseWords(list.words);
+    if (words.length && !state.wordLists.find(l => l.name === list.name)) {
+      state.wordLists.push({ id: (Date.now()+Math.random()).toString(), name: list.name, words });
+      imported++;
+    }
+  });
+  save(); renderWordLists(); updateWordListSelect();
+  toast(`已导入 ${imported} 个词表`);
+}
+
+// ════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════
+(async () => {
+  await load();
+  migratePresetListNames();
+  migrateWrongLog();
+  updateWordListSelect();
+  updateHomeStats();
+  initSettings();
+  if (!state.wordLists.length) {
+    setTimeout(() => {
+      if (confirm('检测到词库为空，是否导入从照片识别的词表？')) {
+        importPreset(); showTab('wordlists');
+      }
+    }, 600);
+  }
+})();
+
+// 从历史记录反推 wrongLog（一次性，wrongLog 为空时执行）
+function migrateWrongLog() {
+  if (!state.wrongLog) state.wrongLog = {};
+  if (Object.keys(state.wrongLog).length > 0) return; // 已有数据，跳过
+  if (!state.history.length) return;
+  // 建立词表拼音查找表
+  const pyMap = {};
+  state.wordLists.forEach(l => l.words.forEach(w => { if (!pyMap[w.text]) pyMap[w.text] = w.pinyin || ''; }));
+  Object.entries(state.mistakes).forEach(([t, d]) => { if (d.pinyin) pyMap[t] = d.pinyin; });
+  // 按历史场次累计错误次数
+  state.history.forEach(h => {
+    const dateKey = h.dateKey || '';
+    (h.wrong || []).forEach(text => {
+      if (!state.wrongLog[text]) state.wrongLog[text] = { pinyin: pyMap[text] || '', count: 0, lastDate: '' };
+      state.wrongLog[text].count++;
+      if (dateKey > state.wrongLog[text].lastDate) state.wrongLog[text].lastDate = dateKey;
+    });
+  });
+  if (Object.keys(state.wrongLog).length > 0) save();
+}
+
+// 迁移旧的预设词表名称（第N组：... → #N，一次性）
+function migratePresetListNames() {
+  let changed = false;
+  state.wordLists.forEach(l => {
+    const m = l.name.match(/^第(\d+)组：/);
+    if (m) { l.name = '#' + m[1]; changed = true; }
+    else if (l.name === '📸 全部合并（222字）') { l.name = '#全部'; changed = true; }
+  });
+  if (changed) save();
+}
+
+// ════════════════════════════════════════
+//  词表导入增强 — 自动拼音 / 实时预览 / 文本导入
+// ════════════════════════════════════════
+
+// 实时预览：解析 textarea 内容并显示词语卡片
+function updateWordPreview() {
+  const raw = document.getElementById('new-list-words').value.trim();
+  const previewEl = document.getElementById('word-preview');
+  const chipsEl   = document.getElementById('preview-chips');
+  const countEl   = document.getElementById('preview-count');
+
+  if (!raw) { previewEl.style.display = 'none'; return; }
+  const words = parseWords(raw);
+  if (!words.length) { previewEl.style.display = 'none'; return; }
+
+  previewEl.style.display = 'block';
+  countEl.textContent = words.length;
+  chipsEl.innerHTML = words.map(w => `
+    <div class="word-chip" title="${w.pinyin || ''}">
+      ${w.text}
+      ${w.pinyin ? `<span style="font-size:10px;color:var(--gray);display:block;font-family:sans-serif;letter-spacing:0;">${w.pinyin}</span>` : ''}
+    </div>`).join('');
+}
+
+// 自动拼音：为没有拼音的行调用 pinyin-pro 生成拼音
+function autoFillPinyin() {
+  const raw = document.getElementById('new-list-words').value.trim();
+  if (!raw) return toast('请先输入词语');
+
+  // 检查 pinyin-pro 是否已加载
+  if (typeof pinyinPro === 'undefined' || typeof pinyinPro.pinyin !== 'function') {
+    toast('拼音库加载中，请稍候再试…');
+    return;
+  }
+
+  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+  let filled = 0;
+  const result = lines.map(line => {
+    const parts = line.split('/');
+    const word = parts[0].trim();
+    if (!word) return line;
+    // 已有拼音则跳过
+    if (parts.length >= 2 && parts[1].trim()) return line;
+    // 生成拼音（带声调符号，多字间空格分隔）
+    const py = pinyinPro.pinyin(word, { toneType: 'symbol', separator: ' ' });
+    filled++;
+    return `${word}/${py}`;
+  });
+
+  document.getElementById('new-list-words').value = result.join('\n');
+  updateWordPreview();
+  if (filled > 0) toast(`已为 ${filled} 个词自动填写拼音，请核对后保存`);
+  else toast('所有词语已有拼音，无需填写');
+}
+
+// 导入文本文件：读取 .txt/.csv 内容填入 textarea
+function importTxtFile() {
+  document.getElementById('import-txt-file').click();
+}
+
+function handleTxtImport(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    // 兼容不同换行符，过滤空行
+    const content = ev.target.result.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+    document.getElementById('new-list-words').value = content;
+    updateWordPreview();
+    toast(`已导入文件：${file.name}`);
+  };
+  reader.readAsText(file, 'UTF-8');
+  e.target.value = '';
+}
+</script>
+<!-- pinyin-pro：中文拼音库，支持多音字上下文识别 -->
+<script src="https://cdn.jsdelivr.net/npm/pinyin-pro/dist/index.js" defer></script>
+</body>
+</html>

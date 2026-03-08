@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.pyo
+data/dictation_data.json
+data/*.tmp
+.DS_Store
+*.swp
