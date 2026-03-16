@@ -968,19 +968,49 @@ function buildQueue(listIds, count, includeMistakes) {
   ids.forEach(listId => {
     let words = [];
     if (listId === '__mistakes__') {
-      // 反查每个单字所在的词组，供听写界面高亮显示
+      // 反查每个单字所在的词组
       const charSrcMap = {};
       state.wordLists.forEach(list => list.words.forEach(w => {
         if ([...w.text].length > 1)
           [...w.text].forEach(ch => { if (!charSrcMap[ch]) charSrcMap[ch] = w; });
       }));
-      words = Object.entries(state.mistakes)
-        .filter(([, d]) => !dateFilter || (d.dates || []).includes(dateFilter))
-        .map(([text, d]) => {
-          const src = charSrcMap[text];
-          return { text, pinyin: d.pinyin || '', meaning: '', _w: d.count,
-            sourceWord: src?.text || null, sourcePinyin: src?.pinyin || null };
+
+      const mistakeEntries = Object.entries(state.mistakes)
+        .filter(([, d]) => !dateFilter || (d.dates || []).includes(dateFilter));
+
+      // 按 sourceWord 分组：同一词组的错字合并为一条队列项
+      const srcWordMap = {}; // srcWord.text → { srcWord, wrongChars: [text,...], maxW }
+      const standalone = [];
+
+      mistakeEntries.forEach(([text, d]) => {
+        const src = charSrcMap[text];
+        if (src) {
+          if (!srcWordMap[src.text]) srcWordMap[src.text] = { srcWord: src, wrongChars: [], maxW: 0 };
+          srcWordMap[src.text].wrongChars.push(text);
+          srcWordMap[src.text].maxW = Math.max(srcWordMap[src.text].maxW, d.count);
+        } else {
+          standalone.push([text, d]);
+        }
+      });
+
+      // 每个词组 → 一条队列项（_mistakeChars 标注哪些字是已知错字）
+      Object.values(srcWordMap).forEach(({ srcWord, wrongChars, maxW }) => {
+        words.push({
+          text: srcWord.text,
+          pinyin: srcWord.pinyin || '',
+          meaning: srcWord.meaning || '',
+          _w: maxW,
+          _mistakeChars: wrongChars,
+          sourceWord: null,
+          sourcePinyin: null
         });
+      });
+
+      // 无词组来源的单字：保持原样
+      standalone.forEach(([text, d]) => {
+        words.push({ text, pinyin: d.pinyin || '', meaning: '', _w: d.count,
+          sourceWord: null, sourcePinyin: null });
+      });
     } else {
       const list = state.wordLists.find(l => l.id === listId);
       if (!list) return;
@@ -1041,9 +1071,15 @@ function renderQuestion() {
   document.getElementById('dict-counter').textContent = `${current + 1} / ${total}`;
   document.getElementById('dict-list-badge').textContent = session.listName;
 
-  // Show the word to parent — 若来自词组则显示完整词组，目标字标红
+  // Show the word to parent — 若来自词组则显示完整词组，错字标红
   const bigWordEl = document.getElementById('big-word');
-  if (word.sourceWord) {
+  if (word._mistakeChars && word._mistakeChars.length > 0) {
+    // 词组合并项：_mistakeChars 中的字标红，其余字正常显示
+    const mcSet = new Set(word._mistakeChars);
+    bigWordEl.innerHTML = [...word.text].map(ch =>
+      mcSet.has(ch) ? `<span class="highlight-char">${ch}</span>` : ch
+    ).join('');
+  } else if (word.sourceWord) {
     bigWordEl.innerHTML = [...word.sourceWord].map(ch =>
       ch === word.text ? `<span class="highlight-char">${ch}</span>` : ch
     ).join('');
@@ -1115,11 +1151,20 @@ function judgeAnswer(correct) {
   if (!correct) {
     const chars = [...word.text];
     if (chars.length > 1) {
-      // 多字词：弹出字选择浮层，暂停推进
+      // 多字词（含词组合并项）：弹出字选择浮层，预选 _mistakeChars
       showCharSelect(word, today);
       return;
     }
-    // 单字：直接记录
+    // 单字但有 sourceWord 上下文（Bug 1）：弹出浮层展示完整词组，预选本字
+    if (word.sourceWord && [...word.sourceWord].length > 1) {
+      showCharSelect({
+        text: word.sourceWord,
+        pinyin: word.sourcePinyin || '',
+        _mistakeChars: [word.text]
+      }, today);
+      return;
+    }
+    // 单字无词组：直接记录
     recordWrong(word.text, word.pinyin || '', today);
     save();
   } else {
@@ -1151,8 +1196,9 @@ function showCharSelect(word, today) {
   _csWord = word; _csToday = today;
   const chars = [...word.text];
   const pySyl = (word.pinyin || '').trim().split(/\s+/);
+  const preSelected = new Set(word._mistakeChars || []);
   document.getElementById('cs-chips').innerHTML = chars.map((ch, i) =>
-    `<div class="cs-chip" data-ch="${ch}" data-py="${pySyl[i]||''}" onclick="toggleCsChip(this)">
+    `<div class="cs-chip${preSelected.has(ch) ? ' selected' : ''}" data-ch="${ch}" data-py="${pySyl[i]||''}" onclick="toggleCsChip(this)">
        ${pySyl[i] ? `<div class="cs-py">${pySyl[i]}</div>` : ''}
        <div class="cs-char">${ch}</div>
      </div>`
@@ -1332,11 +1378,13 @@ function renderMistakes() {
   cont.innerHTML = sortedDates.map(date => {
     const words = byDate[date];
     const label = formatDateLabel(date);
+    const safeDate = date.replace(/'/g, "\\'");
     return `
       <div class="date-group">
         <div class="date-group-header">
           <div class="date-label">${label}</div>
           <div class="date-count">${words.length} 个错字</div>
+          <button class="btn btn-sm btn-outline" onclick="generateZitie('${safeDate}')" style="font-size:11px;padding:3px 8px;margin-left:auto;">📝 字帖</button>
         </div>
         <div class="date-words">
           ${words.map(w => `
@@ -1370,10 +1418,12 @@ function practiceWrongAll() {
   toast('已添加错题本，点开始听写');
 }
 
-function generateZitie() {
+function generateZitie(dateFilter) {
   // 只取单字错题；词组中具体不会写的字已通过字选择浮层单独记录
-  const entries = Object.entries(state.mistakes).filter(([w]) => [...w].length === 1);
-  if (!entries.length) return toast('错题本中暂无单字记录，听写时点「写错了」选择具体字即可生成字帖');
+  const entries = Object.entries(state.mistakes)
+    .filter(([w]) => [...w].length === 1)
+    .filter(([, d]) => !dateFilter || (d.dates || []).includes(dateFilter));
+  if (!entries.length) return toast('该日期暂无单字错题记录');
 
   // 从所有词表反查每个单字的来源词组
   const charSourceMap = {};
@@ -1390,13 +1440,27 @@ function generateZitie() {
 
   // 构建单字列表（去重）
   const seen = new Set();
-  const charList = [];
+  const charListRaw = [];
   entries.forEach(([ch, info]) => {
     if (!seen.has(ch)) {
       seen.add(ch);
-      charList.push({ ch, py: info.pinyin || '', sources: charSourceMap[ch] || [] });
+      charListRaw.push({ ch, py: info.pinyin || '', sources: charSourceMap[ch] || [] });
     }
   });
+
+  // 按来源词组排序，使同词组的字相邻（Bug 3）
+  const bySource = {};
+  const noSource = [];
+  charListRaw.forEach(entry => {
+    const src = entry.sources[0] || null;
+    if (src) {
+      if (!bySource[src]) bySource[src] = [];
+      bySource[src].push(entry);
+    } else {
+      noSource.push(entry);
+    }
+  });
+  const charList = [...Object.values(bySource).flat(), ...noSource];
 
   const TRACE = 2, EMPTY = 7;
   const rows = charList.map(({ ch, py, sources }) => {

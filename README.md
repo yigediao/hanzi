@@ -4,6 +4,7 @@
 
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc/4.0/)
 [![Copyright](https://img.shields.io/badge/Copyright-2026%20yigediao-blue.svg)]()
+[![Version](https://img.shields.io/badge/version-v1.2.0-green.svg)]()
 
 </div>
 
@@ -148,6 +149,27 @@ All data is stored in `data/dictation_data.json`:
 
 - `mistakes` — current practice queue; correct answers decrement count to 0, then entry is deleted
 - `wrongLog` — cumulative error history; count only ever increases; used for analytics
+
+## Changelog
+
+### v1.2.0 — 2026-03-15
+**Bug fixes**
+- **Mistake-book single-char selection**: When practising a single character from a multi-char word (e.g. "双" from "一双"), marking it wrong now opens the full-word picker with the known-wrong character pre-selected — allowing parents to also flag other characters in the same word that the child missed this round.
+- **Multi-char words no longer split into separate items**: If several characters from the same source word (e.g. "做", "作", "业" from "做作业") are all in the mistake book, they are now presented as one combined dictation item showing the full word, with wrong characters highlighted in red.
+- **Practice sheet character order**: Characters from the same source word are now printed consecutively in the practice sheet instead of scattered throughout the page.
+- **Date-filtered practice sheet**: Each date group in the Mistakes tab now has its own **📝 Sheet** button so you can generate a practice sheet for a specific day's errors.
+
+### v1.1.0 — 2026-02-23
+- `wrongLog` cumulative error tracking (never decrements) for analytics
+- Learning analytics page: accuracy trend chart, mastery progress bar, focus words
+- Multi-character word character picker overlay (`char-select-overlay`)
+- Practice sheet generation (HanziWriter stroke order + grid)
+- Multi-list selection with chip UI
+
+### v1.0.0 — Initial release
+- Core dictation flow: word lists, session, mistake book, history
+- `localStorage` + server-side dual persistence
+- Web Speech API text-to-speech
 
 ## License
 
@@ -296,6 +318,23 @@ python server.py
 
 - `mistakes`：当前待练错题，答对自动递减至 0 后删除
 - `wrongLog`：历史累计错误次数，只增不减，用于分析高频错词
+
+## 更新日志
+
+### v1.2.0 — 2026-03-15
+**Bug 修复**
+- **错题本单字可追加选字**：听写错题本中的单字（如来自"一双"的"双"）答错时，现在弹出完整词组的字选界面，并预选已知错字，家长可同时标记同词组中其他不会写的字
+- **同词组多字不再逐字拆开听写**：若多个字同属一词组且均在错题本，现合并为一条听写项展示完整词组，错字高亮红色，答错后再精确选字
+- **字帖同词组字紧挨排列**：生成字帖时，来自同一词组的错字按组相邻输出
+- **按日期生成字帖**：错题本每个日期分组右侧新增「📝 字帖」按钮，可单独为该日错题生成字帖
+
+### v1.1.0 — 2026-02-23
+- `wrongLog` 高频错词累计统计；学习分析页面
+- 多字词答错拆字浮层；字帖生成（HanziWriter 笔顺 + 田字格）
+- 多选词表（chip 样式）
+
+### v1.0.0 — 初始版本
+- 基础听写功能：词表管理、听写流程、错题本、历史记录
 
 ## License
 
